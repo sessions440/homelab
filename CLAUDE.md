@@ -92,16 +92,13 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 
 ### caddy — `192.168.2.3`
 
-- **Status:** LXC provisioned; Caddy not yet installed
+- **Status:** Running. Caddy 2.11.4 installed with `caddy-dns/cloudflare` plugin; TLS working
 - **Purpose:** Reverse proxy for all internal services; handles TLS termination
   via Let's Encrypt DNS-01 challenge (Cloudflare plugin)
 - **Architecture:** All internal HTTPS services route through Caddy. Backend
   services are isolated in their own VMs/LXCs and are not directly exposed.
-- **Pending:** Install Caddy with `caddy-dns/cloudflare` plugin; configure
-  `bitwarden.{env.HOMELAB_DOMAIN}` as first test virtual host; verify cert
-  issuance (verification step to be run manually — see Secrets Management)
-- **Pre-requisite:** Human must populate `/etc/caddy/caddy.env` on the LXC
-  before Claude Code configures Caddy — see `docs/setup/caddy-env.md`
+- **Pending:** Update `reverse_proxy localhost:8080` in Caddyfile to point to
+  actual Vaultwarden LXC IP once provisioned
 - **Docs:** `docs/services/caddy.md`
 
 ### vaultwarden — not yet provisioned
