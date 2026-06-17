@@ -33,8 +33,7 @@ Location: `/etc/caddy/Caddyfile`
 
 ```caddyfile
 bitwarden.{env.HOMELAB_DOMAIN} {
-	# Update this address when Vaultwarden LXC is provisioned
-	reverse_proxy localhost:8080
+	reverse_proxy 192.168.2.11:8080
 
 	tls {
 		dns cloudflare {env.CF_API_TOKEN}

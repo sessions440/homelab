@@ -2,6 +2,18 @@
 
 ---
 
+## Vaultwarden: 502 from Caddy after initial deploy (2026-06-17)
+
+**Symptom:** `https://bitwarden.<domain>` returned HTTP 502. Vaultwarden was healthy inside its LXC but unreachable from the Caddy LXC.
+
+**Cause:** The Docker port binding was `127.0.0.1:8080:80`, which only listens on the loopback interface inside the vaultwarden LXC. Caddy runs on a separate LXC (`192.168.2.3`) and cannot reach a loopback-only port on another host.
+
+**Fix:** Change the binding to `8080:80` (all interfaces) in `docker-compose.yml` and recreate the container with `docker compose up -d --force-recreate`.
+
+**Note:** `127.0.0.1:` binding is only safe when the reverse proxy and service share the same host. In a multi-LXC architecture, services must bind on all interfaces so the Caddy LXC can reach them. The LAN firewall provides the perimeter; direct exposure to the internet is not a concern.
+
+---
+
 ## Caddy DNS-01 challenge: `connection refused` on port 53
 
 **Symptom:** Caddy logs `read udp ...:53: read: connection refused` when

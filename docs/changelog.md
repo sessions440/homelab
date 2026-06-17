@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-06-17 — Vaultwarden installed and running
+
+- Installed Docker CE 29.5.3 + Compose v5 on vaultwarden LXC; enabled `keyctl=1` Proxmox feature
+- Deployed Vaultwarden 1.36.0 via Docker Compose at `/opt/vaultwarden/`
+- Admin token stored as argon2id hash in `/opt/vaultwarden/admin_token`, injected via `ADMIN_TOKEN_FILE`
+  (env file interpolation in Compose v5 mangles `$argon2id$...` strings — file-based injection is the workaround)
+- Updated Caddyfile on caddy LXC to `reverse_proxy 192.168.2.11:8080`
+- Vaultwarden responding HTTP 200 on `127.0.0.1:8080` inside the LXC
+
+## 2026-06-17 — Vaultwarden LXC provisioned
+
+- Created LXC ID 110, hostname `vaultwarden`, IP `192.168.2.11/24`, 512 MB RAM, 8 GB disk, Debian 13
+- `nesting=1` feature enabled (required for systemd 257)
+- SSH key deployed; LXC reachable as `vaultwarden` host alias
+- `apt update && apt upgrade` run on fresh template
+- Vaultwarden binary not yet installed
+
+---
+
 ## 2026-06-16 — Caddy installed and TLS working
 
 - Installed Caddy 2.11.4 from official apt repo on caddy LXC (`192.168.2.3`)

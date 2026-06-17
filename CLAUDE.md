@@ -71,6 +71,7 @@ human to run manually.
 | Name          | ID  | Type               | IP             | RAM    | Disk   | OS        | Purpose                             |
 | ------------- | --- | ------------------ | -------------- | ------ | ------ | --------- | ----------------------------------- |
 | caddy         | 100 | LXC (unprivileged) | `192.168.2.3`  | 512 MB | 8 GB   | Debian 13 | Reverse proxy (Caddy)               |
+| vaultwarden   | 110 | LXC (unprivileged) | `192.168.2.11` | 512 MB | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
 | immich        | 210 | VM                 | `192.168.2.10` | 12 GB  | 150 GB | Debian 13 | Docker host: Immich (deprioritized) |
 | *(minecraft)* | TBD | VM                 | TBD            | TBD    | TBD    | TBD       | Minecraft server (planned)          |
 
@@ -97,17 +98,14 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
   via Let's Encrypt DNS-01 challenge (Cloudflare plugin)
 - **Architecture:** All internal HTTPS services route through Caddy. Backend
   services are isolated in their own VMs/LXCs and are not directly exposed.
-- **Pending:** Update `reverse_proxy localhost:8080` in Caddyfile to point to
-  actual Vaultwarden LXC IP once provisioned
 - **Docs:** `docs/services/caddy.md`
 
-### vaultwarden — not yet provisioned
+### vaultwarden — `192.168.2.11`
 
+- **Status:** Running. Vaultwarden 1.36.0 via Docker Compose; Caddy proxying to `192.168.2.11:8080`
 - **Purpose:** Self-hosted Bitwarden-compatible password manager
-- **Planned approach:** Dedicated Debian 13 LXC; Vaultwarden binary or Docker;
-  fronted by Caddy at `bitwarden.<yourdomain.com>`
-- **Dependency:** Caddy + cert pipeline must be working first
-- **Docs:** `docs/services/vaultwarden.md` (stub)
+- **Runtime:** Docker Compose at `/opt/vaultwarden/`; admin token via `ADMIN_TOKEN_FILE`
+- **Docs:** `docs/services/vaultwarden.md`
 
 ### immich — `192.168.2.10`
 
@@ -199,6 +197,12 @@ After **every task**, update docs before ending the session:
 2. Add a dated entry to `docs/changelog.md`
 3. If something failed or behaved unexpectedly → add to `docs/troubleshooting.md`
 4. If a new VM or LXC was provisioned → update the inventory table in this file
+
+### End of Session
+
+At the end of every session, propose a `git commit` covering all changes made
+during the session before signing off. The human approves and runs it, or asks
+Claude Code to run it.
 
 ### Snapshots
 
