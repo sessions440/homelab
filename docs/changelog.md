@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-06-17 — Vaultwarden migration completed
+
+- Migrated family Bitwarden cloud vaults to self-hosted Vaultwarden
+- Personal vaults imported via JSON export; org vault recreated and imported separately
+- Org members confirmed via web vault (appeared as "Needs Confirmation" rather
+  than "Invited" — Vaultwarden auto-accepts invites when SMTP is disabled)
+- One client device verified working; remaining member devices pending day-to-day confirmation
+- `SIGNUPS_ALLOWED=false` set in `vaultwarden.env`
+- Admin password reset during migration (original was mistyped at hash-generation time);
+  reset procedure documented in `docs/services/vaultwarden.md`
+
 ## 2026-06-17 — Vaultwarden installed and running
 
 - Installed Docker CE 29.5.3 + Compose v5 on vaultwarden LXC; enabled `keyctl=1` Proxmox feature

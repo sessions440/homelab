@@ -2,6 +2,26 @@
 
 ---
 
+## Vaultwarden: admin login rejected despite correct password (2026-06-17)
+
+**Symptom:** `/admin` login returns "Invalid admin token" even when the correct
+plaintext password is entered.
+
+**Cause (most likely):** The password was mistyped when originally running
+`vaultwarden hash` in an SSH terminal (copy-paste wasn't working at the time).
+The hash in `/opt/vaultwarden/admin_token` is internally consistent but doesn't
+match the intended password.
+
+**Secondary cause:** Too many failed attempts triggers an in-memory rate-limit
+lockout. A container restart clears it, but the underlying password mismatch
+must still be resolved.
+
+**Fix:** Reset the admin password — see the "Resetting the admin password"
+section in `docs/services/vaultwarden.md`. When generating the new hash, paste
+the password rather than typing it manually.
+
+---
+
 ## Vaultwarden: 502 from Caddy after initial deploy (2026-06-17)
 
 **Symptom:** `https://bitwarden.<domain>` returned HTTP 502. Vaultwarden was healthy inside its LXC but unreachable from the Caddy LXC.

@@ -76,6 +76,34 @@ variable interpolation on env file values, which mangles the `$argon2id$...`
 string. The fix is to write the raw token to a file and pass the path via
 `ADMIN_TOKEN_FILE`, which Vaultwarden reads directly.
 
+### Resetting the admin password
+
+Use this if the password is lost or needs rotating:
+
+1. SSH to the vaultwarden LXC and generate a new hash — paste the password
+   rather than typing it to avoid transcription errors:
+   ```bash
+   docker run --rm -it vaultwarden/server /vaultwarden hash --preset owasp
+   ```
+2. Write the output hash to the token file (`printf` avoids adding a trailing newline):
+   ```bash
+   printf '%s' 'PASTE_HASH_HERE' > /opt/vaultwarden/admin_token
+   ```
+3. Restart the container to clear any lockout state and pick up the new token:
+   ```bash
+   docker compose -f /opt/vaultwarden/docker-compose.yml restart
+   ```
+4. Log in at `https://bitwarden.<domain>/admin` with the new plaintext password.
+5. Clear the hash from shell history (delete by line number, highest first):
+   ```bash
+   history | grep 'admin_token'
+   history -d <line_number>
+   history -w
+   ```
+
+**Note:** the admin login rate-limits failed attempts in-memory. A container
+restart resets the lockout counter.
+
 ---
 
 ## Caddy Integration
