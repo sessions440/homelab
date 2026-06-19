@@ -16,7 +16,9 @@
   `mkdir -p /run/sshd && systemctl start ssh` from Proxmox console. Use `systemctl restart ssh`
   not `reload` in LXC environments.
 - SSH setup notes written to `docs/setup/ssh.md`
-- `human_homelab` key not yet created; pending human action (see below)
+- `human_homelab` key created; authorized on git LXC (`/srv/git/.ssh/authorized_keys`) and all existing containers (`/root/.ssh/authorized_keys`)
+- Host aliases in `~/.ssh/config` reassigned to `human_homelab`; `Host 192.168.2.12` block added for git remote URL compatibility
+- Claude Code switched to using IPs with explicit `-i ~/.ssh/claude_code_homelab` flag; no SSH aliases needed
 
 ## 2026-06-17 — Vaultwarden migration completed
 

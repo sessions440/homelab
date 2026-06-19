@@ -65,6 +65,23 @@ Encrypt to verify.
 
 ---
 
+## sshd crashes on `systemctl reload` in Debian 13 LXC (2026-06-19)
+
+**Symptom:** `systemctl reload ssh` returns an error; SSH connections refused immediately after. `systemctl status ssh` shows `fatal: Cannot bind any address`.
+
+**Cause:** On Debian 13 LXCs, `reload` sends SIGHUP to the running sshd process, which re-execs itself. During re-exec, sshd expects `/run/sshd` (the privilege separation directory) to exist. In an LXC that hasn't been rebooted since the initial install, this directory may not have been created, causing the re-exec to fail and sshd to exit entirely.
+
+**Fix:** From the Proxmox console (CT 112 → Console):
+
+```bash
+mkdir -p /run/sshd
+systemctl start ssh
+```
+
+**Prevention:** Always use `systemctl restart ssh` instead of `reload` on Debian 13 LXCs. `restart` brings up a fresh process that creates `/run/sshd` itself; `reload` re-execs in-place and depends on the directory already existing.
+
+---
+
 ## Caddy leaks secrets into systemd journal
 
 **Symptom:** `CF_API_TOKEN` (or other env vars) visible in plaintext in
