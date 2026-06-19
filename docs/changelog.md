@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-06-19 — git LXC provisioned and configured
+
+- Created LXC ID 112, hostname `git`, IP `192.168.2.12/24`, 512 MB RAM, 8 GB disk, Debian 13
+- `nesting=1` feature enabled (required for systemd 257)
+- Installed git 2.47.3 and openssh-server 10.0p1
+- Created `git` user with `/usr/bin/git-shell` as login shell, home at `/srv/git`
+- Set up `/srv/git/.ssh/authorized_keys`; `claude_code_homelab` key authorized
+- `git-shell-commands/no-interactive-login` script added
+- Password authentication disabled (`PasswordAuthentication no`)
+- **Issue encountered:** `systemctl reload ssh` caused `fatal: Cannot bind any address` — sshd
+  exited and `/run/sshd` privilege separation directory was not recreated. Fixed by running
+  `mkdir -p /run/sshd && systemctl start ssh` from Proxmox console. Use `systemctl restart ssh`
+  not `reload` in LXC environments.
+- SSH setup notes written to `docs/setup/ssh.md`
+- `human_homelab` key not yet created; pending human action (see below)
+
 ## 2026-06-17 — Vaultwarden migration completed
 
 - Migrated family Bitwarden cloud vaults to self-hosted Vaultwarden

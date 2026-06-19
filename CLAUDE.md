@@ -72,6 +72,7 @@ human to run manually.
 | ------------- | --- | ------------------ | -------------- | ------ | ------ | --------- | ----------------------------------- |
 | caddy         | 100 | LXC (unprivileged) | `192.168.2.3`  | 512 MB | 8 GB   | Debian 13 | Reverse proxy (Caddy)               |
 | vaultwarden   | 110 | LXC (unprivileged) | `192.168.2.11` | 512 MB | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
+| git | 112 | LXC (unprivileged) | `192.168.2.12` | 512 MB | 8 GB | Debian 13 | Bare git remote (LAN-only) |
 | immich        | 210 | VM                 | `192.168.2.10` | 12 GB  | 150 GB | Debian 13 | Docker host: Immich (deprioritized) |
 | *(minecraft)* | TBD | VM                 | TBD            | TBD    | TBD    | TBD       | Minecraft server (planned)          |
 
@@ -106,6 +107,17 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 - **Purpose:** Self-hosted Bitwarden-compatible password manager
 - **Runtime:** Docker Compose at `/opt/vaultwarden/`; admin token via `ADMIN_TOKEN_FILE`
 - **Docs:** `docs/services/vaultwarden.md`
+
+### git — `192.168.2.12`
+
+- **Status:** Running. git 2.47.3 + openssh-server; `git` user with `git-shell`; password auth disabled
+- **Purpose:** LAN-only bare git remote. No web frontend.
+  Acts as a push/pull target for personal repos from client machines.
+- **Runtime:** `git` + `openssh-server`; dedicated `git` user with `git-shell`
+- **Access:** `git@git.home.arpa:/srv/git/<repo>.git`
+- **Encryption:** Cleartext on server. LAN-only exposure; SSH-gated.
+  Offsite encrypted backup planned separately.
+- **Docs:** `docs/services/git.md`
 
 ### immich — `192.168.2.10`
 
@@ -261,6 +273,7 @@ structured knowledge wiki (separate repo). When writing doc updates, favour:
   for Caddy (core infrastructure convention)
 - Immich setup deprioritized; Docker not installed on immich
 - Minecraft VM not yet provisioned
+- git server LXC planned; threat model: cleartext acceptable for LAN-only use, SSH-gated. Offsite encrypted backup to follow.
 
 ## Inexperience with Claude Code
 
