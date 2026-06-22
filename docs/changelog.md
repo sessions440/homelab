@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-06-22 — Docs: clarified AppVM SSH key installation for git server
+
+- Added two subsections to `docs/services/git.md` under "Client SSH access":
+  - "Adding a key from a machine with root access" (existing flow, now explicit)
+  - "Adding a key from a machine without root access (e.g. an AppVM)" — covers
+    the case where the new machine cannot SSH as root; key must be installed via
+    a primary machine that has root access, since `git-shell` blocks interactive
+    login and password auth is disabled
+
 ## 2026-06-19 — git LXC provisioned and configured
 
 - Created LXC ID 112, hostname `git`, IP `192.168.2.12/24`, 512 MB RAM, 8 GB disk, Debian 13

@@ -92,6 +92,51 @@ chown git:git /srv/git/.ssh/authorized_keys
 chmod 600 /srv/git/.ssh/authorized_keys
 ```
 
+### Adding a key from a machine with root access
+
+If the machine adding the key already has root access to the git server (i.e.
+it has the `git` host alias configured), pipe the public key in directly:
+
+```bash
+cat ~/.ssh/<keyname>.pub | ssh git "cat >> /srv/git/.ssh/authorized_keys && chown git:git /srv/git/.ssh/authorized_keys && chmod 600 /srv/git/.ssh/authorized_keys"
+```
+
+### Adding a key from a machine without root access (e.g. an AppVM)
+
+The `git` user's shell is `git-shell` — interactive login is disabled, so you
+cannot SSH in as `git` to append a key. Password auth is also disabled. The
+only route is through a machine that does have root access (your primary
+machine).
+
+**Step 1:** On the AppVM, print the public key:
+
+```bash
+cat ~/.ssh/<keyname>.pub
+```
+
+**Step 2:** On your primary machine, paste it into this command:
+
+```bash
+echo '<public-key-string>' | ssh git "cat >> /srv/git/.ssh/authorized_keys && chown git:git /srv/git/.ssh/authorized_keys && chmod 600 /srv/git/.ssh/authorized_keys"
+```
+
+**Step 3:** On the AppVM, add an SSH config block so the correct key is used
+for git remote URLs:
+
+```
+Host 192.168.2.12
+    IdentityFile ~/.ssh/<keyname>
+```
+
+No `Host git` alias is needed — that alias is for root admin access and won't
+work on a machine without root authorization.
+
+**Step 4:** Test from the AppVM:
+
+```bash
+git clone git@192.168.2.12:/srv/git/<repo>.git
+```
+
 ### Keys currently authorized
 
 | Key | Purpose |
