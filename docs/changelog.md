@@ -2,6 +2,19 @@
 
 ---
 
+## 2026-06-24 — Research: OpenCode model cost/quality analysis
+
+- Reviewed cost and capability of cheaper OpenRouter models as alternatives to
+  Claude Sonnet 4.5 (`anthropic/claude-sonnet-latest`, $15/1M output tokens)
+- Analysis tailored to actual task profile of this project (config writing,
+  sysadmin shell commands, documentation, light debugging)
+- Three candidates evaluated:
+  - **Claude Haiku 4.5** — 67% cheaper output, same Anthropic provider, 200K ctx
+  - **Gemini 2.5 Flash** — 83% cheaper output, Google, 1M ctx, built-in thinking
+  - **DeepSeek V3 0324** — 95% cheaper, flagged as unsuitable for agentic sessions
+    involving live infrastructure due to data sovereignty concerns
+- Findings recorded in `docs/plan/ai-model-costs.md`
+
 ## 2026-06-22 — Docs: clarified AppVM SSH key installation for git server
 
 - Added two subsections to `docs/services/git.md` under "Client SSH access":
