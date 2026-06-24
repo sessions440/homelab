@@ -35,10 +35,16 @@ human to run manually.
 
 | Item       | Value                                     |
 | ---------- | ----------------------------------------- |
-| Hardware   | Intel i7-7700, 32 GB RAM, 466 GB SSD      |
 | Hypervisor | Proxmox VE 9.2.3                          |
 | Proxmox IP | `192.168.2.2` (off-limits to Claude Code) |
 | LAN subnet | `192.168.2.0/24`                          |
+
+### Hardware
+
+- Intel Core i7-7700 @ 3.60GHz, 64-bit
+- 32GB RAM
+- 466GB SSD (Samsung 850 EVO)
+- NVIDIA GTX 1060 6GB
 
 ---
 
@@ -278,6 +284,13 @@ structured knowledge wiki (separate repo). When writing doc updates, favour:
 - Minecraft VM not yet provisioned
 - git server LXC planned; threat model: cleartext acceptable for LAN-only use, SSH-gated. Offsite encrypted backup to follow.
 
-## Inexperience with Claude Code
+## Inexperience with coding agents
 
-The human is currently very new to Claude Code. Err on the side of human intervention for now. Feel free to make suggestions, including edits to `CLAUDE.md`. Explain yourself.
+The human is currently very new to coding agents. Err on the side of human intervention for now. Feel free to make suggestions, including edits to `AGENTS.md`. Explain yourself.
+
+## TODO list
+
+### Git house cleaning
+
+- git commits authored solely by an AI should have their own author. Something like "AI" with email address "none". Git commits authored at least in part by the human should have author name "Human" with email address "none".
+- Existing git history for this repo has old author names that I want to replace. Amend the entire existing commit history of this repo so that all commit authors are "Human" as described above.
