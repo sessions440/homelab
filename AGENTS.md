@@ -214,7 +214,8 @@ After **every task**, update docs before ending the session:
 
 At the end of every session, propose a `git commit` covering all changes made
 during the session before signing off. The human approves and runs it, or asks
-Claude Code to run it.
+Claude Code to run it. Claude Code may run the commit directly once the human
+has given explicit approval in the session.
 
 ### Snapshots
 
@@ -232,6 +233,8 @@ homelab/
 │   ├── architecture.md          ← network diagram, hardware, design decisions
 │   ├── changelog.md             ← dated log of all changes
 │   ├── troubleshooting.md       ← problems encountered and resolutions
+│   ├── plan/
+│   │   ├── local-ai-stack.md    ← Pending local AI stack plan and decision log
 │   ├── setup/
 │   │   ├── ssh.md               ← SSH keypair setup and deployment notes
 │   │   └── caddy-env.md         ← manual env file setup on caddy LXC
