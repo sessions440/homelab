@@ -290,7 +290,21 @@ The human is currently very new to coding agents. Err on the side of human inter
 
 ## TODO list
 
-### Git house cleaning
+### Git authorship convention
 
-- git commits authored solely by an AI should have their own author. Something like "AI" with email address "none". Git commits authored at least in part by the human should have author name "Human" with email address "none".
-- Existing git history for this repo has old author names that I want to replace. Amend the entire existing commit history of this repo so that all commit authors are "Human" as described above.
+Commits in this repo use two identities — no personal names or real email addresses:
+
+| Author | Name | Email |
+|---|---|---|
+| Human-authored (any human involvement) | `Human` | `human@localhost` |
+| AI-authored (solely by AI) | `AI` | `ai@localhost` |
+
+When running git commits, always pass `--author` explicitly to set the correct identity regardless of the local git config. Example:
+
+```bash
+git commit --author="AI <ai@localhost>" -m "message"
+git commit --author="Human <human@localhost>" -m "message"
+```
+
+Note: existing history uses `none` as the email for all commits (pre-convention).
+New commits should use `ai@localhost` or `human@localhost` per the table above.
