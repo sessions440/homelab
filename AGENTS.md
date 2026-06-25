@@ -288,9 +288,7 @@ structured knowledge wiki (separate repo). When writing doc updates, favour:
 
 The human is currently very new to coding agents. Err on the side of human intervention for now. Feel free to make suggestions, including edits to `AGENTS.md`. Explain yourself.
 
-## TODO list
-
-### Git authorship convention
+## Git authorship convention
 
 Commits in this repo use two identities — no personal names or real email addresses:
 
