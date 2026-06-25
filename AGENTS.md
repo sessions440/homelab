@@ -242,6 +242,7 @@ homelab/
 │   ├── plan/
 │   │   ├── local-ai-stack.md    ← Pending local AI stack plan and decision log
 │   ├── setup/
+│   │   ├── etckeeper-proxmox.md ← etckeeper installation gotchas for Proxmox
 │   │   ├── ssh.md               ← SSH keypair setup and deployment notes
 │   │   └── caddy-env.md         ← manual env file setup on caddy LXC
 │   └── services/
