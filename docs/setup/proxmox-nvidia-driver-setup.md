@@ -7,7 +7,7 @@
 
 ## Context / Goal
 
-Install the NVIDIA proprietary driver on the Proxmox VE 9 (Debian trixie) host itself, as a prerequisite for LXC cgroup GPU passthrough into the local AI inference stack (see `local-ai-stack.md`). The host owns the driver; containers only need a matching CUDA userspace, not the kernel driver.
+Install the NVIDIA proprietary driver on the Proxmox VE 9 (Debian trixie) host itself, as a prerequisite for LXC cgroup GPU passthrough into the local AI inference stack (see [Local AI stack](../plan/local-ai-stack.md)). The host owns the driver; containers only need a matching CUDA userspace, not the kernel driver.
 
 Hardware: NVIDIA GeForce GTX 1060 6GB. Host kernel at time of install: `7.0.6-2-pve`.
 

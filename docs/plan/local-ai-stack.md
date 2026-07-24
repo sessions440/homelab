@@ -32,7 +32,7 @@ Setting up a purely local AI inference stack on the home LAN to enable semantic 
 
 - [x] ~~**Model selection:** best chat model and embedding model for this VRAM budget, optimized for Q&A over personal notes rather than coding.~~ **RESOLVED 2026-06-24. See Decisions Log.**
 
-- [x] ~~**GPU in Proxmox:** LXC cgroup device passthrough vs KVM VM with VFIO PCIe passthrough~~ **DECIDED: LXC cgroup passthrough.** Host NVIDIA driver installed and verified — see `proxmox-nvidia-driver-setup.md` for the full install log, decisions, and gotchas. **Remaining:** wire the GPU into the actual inference LXC (privileged container, `/dev/nvidia*` bind mounts, matching CUDA toolkit inside the container) — not yet done.
+- [x] ~~**GPU in Proxmox:** LXC cgroup device passthrough vs KVM VM with VFIO PCIe passthrough~~ **DECIDED: LXC cgroup passthrough.** Host NVIDIA driver installed and verified — see [Proxmox Host — NVIDIA Driver Setup](../setup/proxmox-nvidia-driver-setup.md) for the full install log, decisions, and gotchas. **Remaining:** wire the GPU into the actual inference LXC (privileged container, `/dev/nvidia*` bind mounts, matching CUDA toolkit inside the container) — not yet done.
 
 ---
 
@@ -60,9 +60,9 @@ The ultimate goal is a Karpathy-style LLM wiki: a git repo of structured markdow
 
 **Decision: LXC cgroup device passthrough**, not VFIO/KVM. Rationale: this is a headless CUDA inference workload with no need for display output or full hardware isolation; VFIO adds VM overhead and IOMMU-group risk (consumer boards often bundle the GPU with PCH devices) for no real benefit here. LXC cgroup passthrough grants the container direct access to host-owned `/dev/nvidia*` device nodes — near bare-metal throughput, no hypervisor layer.
 
-Host-side driver install (NVIDIA 580.173.02 via `.run` installer + DKMS, persistence daemon, udev rules) is complete. Full walkthrough, gotchas, and command history: **`proxmox-nvidia-driver-setup.md`**.
+Host-side driver install (NVIDIA 580.173.02 via `.run` installer + DKMS, persistence daemon, udev rules) is complete. Full walkthrough, gotchas, and command history: **[Proxmox Host — NVIDIA Driver Setup](../setup/proxmox-nvidia-driver-setup.md)**.
 
-Still open: the per-container wiring (privileged LXC creation, cgroup device permissions, CUDA toolkit version matched to host driver 580.173.02, llama-server CUDA build). Concrete prep notes — required config lines, base template tradeoff, and a known boot-race gotcha — are documented in `proxmox-nvidia-driver-setup.md` under "Next Step: LXC GPU Wiring".
+Still open: the per-container wiring (privileged LXC creation, cgroup device permissions, CUDA toolkit version matched to host driver 580.173.02, llama-server CUDA build). Concrete prep notes — required config lines, base template tradeoff, and a known boot-race gotcha — are documented in [Proxmox Host — NVIDIA Driver Setup](../setup/proxmox-nvidia-driver-setup.md) under "Next Step: LXC GPU Wiring".
 
 ### 2026-06-24 — Model Selection
 
@@ -133,5 +133,5 @@ If VRAM is exhausted, llama.cpp begins offloading layers to CPU RAM over PCIe �
 
 ## Execution Log
 
-- **2026-06-26 → 2026-07-24:** Proxmox host NVIDIA driver (580.173.02) installed and verified via DKMS; persistence daemon and udev rules in place. `etckeeper` installed on the Proxmox host to track `/etc` changes going forward. Full details: `proxmox-nvidia-driver-setup.md`.
+- **2026-06-26 → 2026-07-24:** Proxmox host NVIDIA driver (580.173.02) installed and verified via DKMS; persistence daemon and udev rules in place. `etckeeper` installed on the Proxmox host to track `/etc` changes going forward. Full details: [Proxmox Host — NVIDIA Driver Setup](../setup/proxmox-nvidia-driver-setup.md).
 - **Next:** create the inference LXC and wire GPU cgroup passthrough into it.
