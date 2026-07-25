@@ -93,7 +93,7 @@ chmod +x NVIDIA-Linux-x86_64-580.173.02.run
 ./NVIDIA-Linux-x86_64-580.173.02.run --dkms
 ```
 
-**On a host where nouveau is still loaded (the normal first-run case), this will fail.** The installer detects nouveau, writes blacklist configs to disable it (`/usr/lib/modprobe.d/nvidia-installer-disable-nouveau.conf` and `/etc/modprobe.d/nvidia-installer-disable-nouveau.conf`), rebuilds the initramfs, and then aborts — because nouveau is still active in the *running* kernel and can't be unloaded live. This is expected, not a real error.
+**On a host where nouveau is still loaded (the normal first-run case), this will fail.** The installer detects nouveau, writes blacklist configs to disable it (`/usr/lib/modprobe.d/nvidia-installer-disable-nouveau.conf` and `/etc/modprobe.d/nvidia-installer-disable-nouveau.conf`), rebuilds the initramfs, and then aborts — because nouveau is still active in the _running_ kernel and can't be unloaded live. This is expected, not a real error.
 
 ```bash
 reboot
@@ -177,7 +177,11 @@ Not yet executed, but the following is settled and should be treated as the star
 
 **Container type:** Must be **privileged**. Unprivileged LXCs UID-shift device node ownership in ways that break CUDA access — this is not optional for this use case.
 
-**Base template:** Not yet decided. Debian 12 (bookworm) is the safer choice — CUDA toolkit packages are best-tested against it. Debian 13 (trixie) is plausible but more bleeding-edge; matches the host OS but toolkit compatibility is less proven. Decide before creating the container.
+**Base template: Debian 12 (bookworm).** Decided 2026-07-24.
+
+Debian 13 (trixie) was seriously considered — trixie matches the host OS, and general instinct favors current software. However, this isn't a "less proven, be a bit careful" tradeoff — it's a hardware compatibility ceiling. Debian 13's NVIDIA/CUDA packaging and current install guides are oriented around driver versions 590+, and **the GTX 1060 (Pascal architecture) has no support in the 590+ driver branch at all.** A CUDA toolkit install on trixie following the ecosystem's default docs will pull dependencies expecting a driver that literally cannot run this GPU. Debian 13 usage for this container would mean permanently overriding the distro's default CUDA guidance to manually pin an older toolkit/driver combo — not a one-time gotcha but an ongoing tax every time the container's CUDA stack is touched.
+
+Debian 12's packaging targets the 580.xx driver era, which matches the host driver (580.173.02) already installed and verified working with this GPU. No override-the-defaults tax. Given the host driver is a hardware-imposed ceiling regardless of container OS choice, Debian 12 removes an entire class of future friction for no real cost — the general preference for newer software doesn't outweigh building on a distro whose CUDA tooling assumes hardware this GPU doesn't have.
 
 **Config additions** (`/etc/pve/lxc/<CTID>.conf`) — find actual major numbers via `ls -la /dev/nvidia*` on the host first, these vary by driver version:
 
