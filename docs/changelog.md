@@ -2,6 +2,14 @@
 
 ---
 
+## 2026-08-12 — Fix: corrected SSH Access section in CLAUDE.md
+
+- SSH Access section previously showed a `Host caddy` alias with `IdentityFile ~/.ssh/ai_homelab`,
+  implying Claude Code uses Host aliases — it does not
+- Rewrote section to accurately describe the two-key system: `ai_homelab` used by
+  Claude Code via explicit `-i` flag on IPs; `human_homelab` used by humans via Host aliases
+- No functional change; documentation-only correction
+
 ## 2026-08-12 — SSH key renamed: claude_code_homelab → ai_homelab
 
 - Renamed Claude Code automation SSH key files from `~/.ssh/claude_code_homelab`

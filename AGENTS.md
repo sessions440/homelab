@@ -140,17 +140,24 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 
 ## SSH Access
 
-Claude Code connects to service VMs/LXCs only. Configured via `~/.ssh/config`
-on the local machine — see setup instructions in `docs/setup/ssh.md`.
+Two keys are in use:
 
-```
-Host caddy
-    HostName 192.168.2.3
-    User root
-    IdentityFile ~/.ssh/ai_homelab
+| Key | User | Method |
+|-----|------|--------|
+| `~/.ssh/ai_homelab` | Claude Code | IP address + explicit `-i` flag; no Host aliases |
+| `~/.ssh/human_homelab` | Human interactive | `Host` aliases in `~/.ssh/config` |
+
+Claude Code connects via IP with an explicit `-i` flag, for example:
+
+```bash
+ssh -i ~/.ssh/ai_homelab root@192.168.2.3
 ```
 
-Add additional `Host` blocks as VMs are provisioned. **Do not add a block for `192.168.2.2` (Proxmox host).**
+The `Host` aliases in `~/.ssh/config` (caddy, vaultwarden, git) are for human
+interactive access and use `human_homelab`. Claude Code does not use them.
+**Do not add a Host alias block for `192.168.2.2` (Proxmox host).**
+
+See `docs/setup/ssh.md` for full key strategy, provisioning steps, and config.
 
 ---
 
