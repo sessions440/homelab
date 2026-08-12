@@ -2,6 +2,16 @@
 
 ---
 
+## 2026-08-12 — SSH key renamed: claude_code_homelab → ai_homelab
+
+- Renamed Claude Code automation SSH key files from `~/.ssh/claude_code_homelab`
+  to `~/.ssh/ai_homelab`; key comment updated to `ai_homelab` via `ssh-keygen -c -C`
+- Old files preserved at `~/.ssh/claude_code_homelab.old` and `~/.ssh/claude_code_homelab.pub.old`
+- Key identity (public key fingerprint) is unchanged; no re-authorization needed on any container
+- Updated all references in: `docs/setup/ssh.md`, `docs/services/git.md`, `CLAUDE.md`,
+  `.claude/settings.local.json`, `~/.ssh/config`
+- Connectivity verified: `ssh -i ~/.ssh/ai_homelab root@192.168.2.3` responds correctly
+
 ## 2026-06-24 — Research: OpenCode model cost/quality analysis
 
 - Reviewed cost and capability of cheaper OpenRouter models as alternatives to

@@ -6,7 +6,7 @@ Two separate keys serve distinct purposes:
 
 | Key | Purpose | Passphrase |
 |-----|---------|-----------|
-| `~/.ssh/claude_code_homelab` | Claude Code automated access (root on service LXCs) | None (automation key) |
+| `~/.ssh/ai_homelab` | Claude Code automated access (root on service LXCs) | None (automation key) |
 | `~/.ssh/human_homelab` | Human interactive access (root on service LXCs, git user on git LXC) | Recommended |
 
 Keeping them separate means Claude Code access can be revoked independently of your personal access, and vice versa.
@@ -21,11 +21,11 @@ This produces `~/.ssh/<keyname>` (private) and `~/.ssh/<keyname>.pub` (public). 
 
 ## SSH config (~/.ssh/config)
 
-The `Host` aliases are reserved for human interactive access — they let you type `ssh caddy` instead of `ssh -i ~/.ssh/... root@192.168.2.3`. Claude Code uses IP addresses with an explicit `-i ~/.ssh/claude_code_homelab` flag and does not need aliases.
+The `Host` aliases are reserved for human interactive access — they let you type `ssh caddy` instead of `ssh -i ~/.ssh/... root@192.168.2.3`. Claude Code uses IP addresses with an explicit `-i ~/.ssh/ai_homelab` flag and does not need aliases.
 
 ```
 # Bare hostnames reserved for human interactive access (User root).
-# Claude Code uses IPs with explicit -i flag; no aliases needed.
+# Claude Code uses IPs with explicit -i ~/.ssh/ai_homelab flag; no aliases needed.
 
 Host caddy
     HostName 192.168.2.3
@@ -56,7 +56,7 @@ The `git` *user* on the git LXC (`git@192.168.2.12`) requires a separate `Host 1
 ## Conventions
 
 - **Password authentication is disabled** (`PasswordAuthentication no` in `/etc/ssh/sshd_config`) on all service LXCs. SSH key access only.
-- Claude Code uses `claude_code_homelab` for all automated SSH operations.
+- Claude Code uses `ai_homelab` for all automated SSH operations.
 - Human interactive sessions use `human_homelab`.
 - New containers get both keys added to `/root/.ssh/authorized_keys` at provisioning time.
 
@@ -66,7 +66,7 @@ At provisioning, add both public keys and disable password auth:
 
 ```bash
 # Add both keys
-ssh-copy-id -i ~/.ssh/claude_code_homelab.pub root@<ip>
+ssh-copy-id -i ~/.ssh/ai_homelab.pub root@<ip>
 ssh-copy-id -i ~/.ssh/human_homelab.pub root@<ip>
 
 # Disable password auth
@@ -91,7 +91,7 @@ Open `authorized_keys` on the target container and delete the relevant line:
 ssh <host> "nano /root/.ssh/authorized_keys"
 ```
 
-Each line in `authorized_keys` ends with the comment field from when the key was generated (e.g. `claude-code-homelab` or `human-homelab`). That comment is how you identify which line to delete.
+Each line in `authorized_keys` ends with the comment field from when the key was generated (e.g. `ai_homelab` or `human_homelab`). That comment is how you identify which line to delete.
 
 To view all currently authorized keys on a container:
 

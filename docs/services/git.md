@@ -141,7 +141,7 @@ git clone git@192.168.2.12:/srv/git/<repo>.git
 
 | Key | Purpose |
 |-----|---------|
-| `claude_code_homelab` | Claude Code automated access |
+| `ai_homelab` | Claude Code automated access |
 | `human_homelab` | Human access from primary machine |
 
 ## Security notes

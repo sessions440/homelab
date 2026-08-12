@@ -147,7 +147,7 @@ on the local machine — see setup instructions in `docs/setup/ssh.md`.
 Host caddy
     HostName 192.168.2.3
     User root
-    IdentityFile ~/.ssh/claude_code_homelab
+    IdentityFile ~/.ssh/ai_homelab
 ```
 
 Add additional `Host` blocks as VMs are provisioned. **Do not add a block for `192.168.2.2` (Proxmox host).**
