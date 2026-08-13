@@ -77,7 +77,7 @@ human to run manually.
 | Name          | ID  | Type               | IP             | RAM    | Disk   | OS        | Purpose                             |
 | ------------- | --- | ------------------ | -------------- | ------ | ------ | --------- | ----------------------------------- |
 | caddy         | 100 | LXC (unprivileged) | `192.168.2.3`  | 512 MB | 8 GB   | Debian 13 | Reverse proxy (Caddy)               |
-| vaultwarden   | 110 | LXC (unprivileged) | `192.168.2.11` | 512 MB | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
+| vaultwarden   | 111 | LXC (unprivileged) | `192.168.2.11` | 512 MB | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
 | git | 112 | LXC (unprivileged) | `192.168.2.12` | 512 MB | 8 GB | Debian 13 | Bare git remote (LAN-only) |
 | immich        | 210 | VM                 | `192.168.2.10` | 12 GB  | 150 GB | Debian 13 | Docker host: Immich (deprioritized) |
 | *(minecraft)* | TBD | VM                 | TBD            | TBD    | TBD    | TBD       | Minecraft server (planned)          |

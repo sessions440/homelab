@@ -108,3 +108,7 @@
     the drop-in to omit the flag
 - SSH key passphrase removed from `~/.ssh/claude_code_homelab` (automated
   access key, passphrase provides no benefit)
+
+## 2026-08-13
+
+- Vaultwarden LXC ID change 110 -> 111 to conform to convention that LXC ID xyy has LAN IP address 192.168.2.yy

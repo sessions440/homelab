@@ -8,7 +8,7 @@ Self-hosted Bitwarden-compatible password manager.
 
 | Item     | Value                               |
 | -------- | ----------------------------------- |
-| LXC ID   | 110                                 |
+| LXC ID   | 111                                 |
 | IP       | `192.168.2.11`                      |
 | OS       | Debian 13                           |
 | RAM      | 512 MB                              |
