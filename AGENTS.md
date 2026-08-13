@@ -77,10 +77,10 @@ human to run manually.
 | Name          | ID  | Type               | IP             | RAM    | Disk   | OS        | Purpose                             |
 | ------------- | --- | ------------------ | -------------- | ------ | ------ | --------- | ----------------------------------- |
 | caddy         | 100 | LXC (unprivileged) | `192.168.2.3`  | 512 MB | 8 GB   | Debian 13 | Reverse proxy (Caddy)               |
+| immich        | 210 | VM                 | `192.168.2.10` | 12 GB  | 150 GB | Debian 13 | Docker host: Immich (deprioritized) |
 | vaultwarden   | 111 | LXC (unprivileged) | `192.168.2.11` | 512 MB | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
 | git | 112 | LXC (unprivileged) | `192.168.2.12` | 512 MB | 8 GB | Debian 13 | Bare git remote (LAN-only) |
-| immich        | 210 | VM                 | `192.168.2.10` | 12 GB  | 150 GB | Debian 13 | Docker host: Immich (deprioritized) |
-| *(minecraft)* | TBD | VM                 | TBD            | TBD    | TBD    | TBD       | Minecraft server (planned)          |
+| minecraft     | 113 | LXC (unprivileged) | `192.168.2.13` | 8192 MB | 32 GB  | Debian 13 | Minecraft server (LAN-only)          |
 
 ### LXC Provisioning Notes (Debian 13)
 
@@ -107,6 +107,12 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
   services are isolated in their own VMs/LXCs and are not directly exposed.
 - **Docs:** `docs/services/caddy.md`
 
+### immich — `192.168.2.10`
+
+- **Status:** Bare Debian 13 VM; Docker not yet installed; deprioritized
+- **Planned runtime:** Docker + Docker Compose
+- **Docs:** `docs/services/immich.md`
+
 ### vaultwarden — `192.168.2.11`
 
 - **Status:** Running. Vaultwarden 1.36.0 via Docker Compose; Caddy proxying to `192.168.2.11:8080`
@@ -125,16 +131,12 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
   Offsite encrypted backup planned separately.
 - **Docs:** `docs/services/git.md`
 
-### immich — `192.168.2.10`
+### minecraft — `192.168.2.13`
 
-- **Status:** Bare Debian 13 VM; Docker not yet installed; deprioritized
-- **Planned runtime:** Docker + Docker Compose
-- **Docs:** `docs/services/immich.md`
-
-### minecraft — TBD
-
-- Not yet provisioned.
-- **Docs:** `docs/services/minecraft.md` (stub)
+- **Status:** LXC provisioned (CT 113, Debian 13, 2 cores, 8192MB RAM, 512MB swap, 32GB disk, unprivileged, `nesting=1`). SSH keys deployed, password auth disabled. Java/server install pending — see `docs/services/minecraft.md` for the execution plan.
+- **Purpose:** LAN-only Minecraft Java Edition server. Internet exposure (WireGuard/tunnel) planned for later.
+- **Runtime:** Bare JVM via systemd (no Docker) — planned unit `minecraft.service`
+- **Docs:** `docs/services/minecraft.md`
 
 ---
 

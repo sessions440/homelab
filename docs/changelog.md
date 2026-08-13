@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-08-13 — Minecraft LXC provisioned
+
+- Proxmox housekeeping: Vaultwarden LXC ID change 110 -> 111 to conform to convention that LXC ID xyy has LAN IP address 192.168.2.yy
+- Created CT 113, hostname `minecraft`, IP `192.168.2.13/24`, Debian 13, 2 cores, 8192MB RAM, 512MB swap, 32GB disk, unprivileged
+- Enabled `nesting=1` post-creation (Debian 13 / systemd 257 warning, same pattern as other CTs)
+- SSH keys (`ai_homelab`, `human_homelab`) authorized; password authentication disabled
+- Java/server install deferred to a coding-agent session (trialing Gemini 2.5 Flash via OpenCode) — see `docs/services/minecraft.md` for the execution plan
+- **Note for the record:** Minecraft moved to calendar versioning in 2026; current releases (26.1+) require **Java 25**, not the Java 21 commonly cited in older guides — flagged explicitly in the service doc
+
 ## 2026-08-12 — Fix: corrected SSH Access section in CLAUDE.md
 
 - SSH Access section previously showed a `Host caddy` alias with `IdentityFile ~/.ssh/ai_homelab`,
@@ -108,7 +117,3 @@
     the drop-in to omit the flag
 - SSH key passphrase removed from `~/.ssh/claude_code_homelab` (automated
   access key, passphrase provides no benefit)
-
-## 2026-08-13
-
-- Vaultwarden LXC ID change 110 -> 111 to conform to convention that LXC ID xyy has LAN IP address 192.168.2.yy
