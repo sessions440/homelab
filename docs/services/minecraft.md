@@ -27,17 +27,17 @@ Provisioning Notes).
 
 ## Status
 
+- **2026-08-14:** Java 25 (`openjdk-25-jre-headless`) installed. Dedicated user `minecraft` created with home `/opt/minecraft`. Minecraft Vanilla Server 26.2 downloaded, EULA accepted, and configured as a systemd service (`minecraft.service`). Verified active and listening on port `25565`.
 - **2026-08-13:** LXC provisioned. SSH keys (`ai_homelab`, `human_homelab`)
-  authorized; password authentication disabled. No Minecraft software
-  installed yet.
+  authorized; password authentication disabled.
 
 ---
 
 ## Setup Plan (remaining)
 
-> Intended to be executed by a coding agent (trialing Gemini 2.5 Flash via
-> OpenCode) with SSH access to this LXC. Written as instructions for that
-> agent — keep this section updated as ground truth once execution starts.
+> Intended to be executed by a coding agent with SSH access to this LXC.
+> (Currently trialing Gemini 3.7 Flash via OpenCode with "low" reasoning. This choice differs from what's in [`docs/plan/ai-model-costs.md`](../plan/ai-model-costs.md), which is two months out of date as of 2026-08-14.)
+> Written as instructions for that agent — keep this section updated as ground truth once execution starts.
 
 ### ⚠️ Java version — decide before installing
 

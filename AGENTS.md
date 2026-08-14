@@ -133,9 +133,9 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 
 ### minecraft — `192.168.2.13`
 
-- **Status:** LXC provisioned (CT 113, Debian 13, 2 cores, 8192MB RAM, 512MB swap, 32GB disk, unprivileged, `nesting=1`). SSH keys deployed, password auth disabled. Java/server install pending — see `docs/services/minecraft.md` for the execution plan.
+- **Status:** Running. Minecraft Java Edition server 26.2 running on Java 25 (`openjdk-25-jre-headless`) via systemd unit `minecraft.service`. Port 25565 listening on LAN.
 - **Purpose:** LAN-only Minecraft Java Edition server. Internet exposure (WireGuard/tunnel) planned for later.
-- **Runtime:** Bare JVM via systemd (no Docker) — planned unit `minecraft.service`
+- **Runtime:** Bare JVM via systemd (no Docker) — unit `minecraft.service`
 - **Docs:** `docs/services/minecraft.md`
 
 ---

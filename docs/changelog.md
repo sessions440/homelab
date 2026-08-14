@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-08-14 — Minecraft Java Edition server installed (Decision Path A)
+
+- Installed `openjdk-25-jre-headless` (Java 25.0.4) on `minecraft` LXC (`192.168.2.13`)
+- Created system user `minecraft` (`/opt/minecraft`, `/usr/sbin/nologin`)
+- Downloaded Minecraft Java Edition server release 26.2 from Mojang official version manifest to `/opt/minecraft/server.jar`
+- Accepted EULA in `/opt/minecraft/eula.txt`
+- Created and enabled systemd unit `/etc/systemd/system/minecraft.service` with `-Xms6G -Xmx6G`
+- Verified service running and world generated; TCP port 25565 open and responding to LAN connections
+
 ## 2026-08-13 — Minecraft LXC provisioned
 
 - Proxmox housekeeping: Vaultwarden LXC ID change 110 -> 111 to conform to convention that LXC ID xyy has LAN IP address 192.168.2.yy
