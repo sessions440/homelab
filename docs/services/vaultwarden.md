@@ -22,6 +22,10 @@ LXC is unprivileged with `nesting=1` and `keyctl=1` features enabled.
 
 ## Status
 
+- **2026-08-14:** Identified that Bitwarden client v2026.7.0 (desktop app
+  and browser extension) fails to render the vault against this server,
+  which is still on 1.36.0 — see `docs/troubleshooting.md`. Upgrade to
+  1.37.0+ planned.
 - **2026-06-17:** LXC provisioned. Docker installed. Vaultwarden 1.36.0 running via Docker Compose. Caddy proxying to this LXC.
 
 ---

@@ -106,3 +106,57 @@ setting the new one. Then clear the journal:
 ```bash
 journalctl --rotate && journalctl --vacuum-time=1s
 ```
+
+---
+
+## Vaultwarden: blank/unresponsive vault in desktop app and browser extension, web vault unaffected (2026-08-14)
+
+**Symptom:** On one Bitwarden client machine, the desktop app and browser
+extension both show an empty vault with an unresponsive sidebar (can't
+switch vaults, no items render), while the web vault at
+`https://bitwarden.<domain>` works normally with all items visible.
+Initially suspected as related to the `vaultwarden` LXC renumbering
+(CT 110 → 111) performed the same week — the two are unrelated, see Cause.
+
+**Cause:** Bitwarden shipped a coordinated client release (`2026.7.0` —
+browser extension, desktop app, mobile, CLI, server) in late July 2026.
+The 2026.7.0 browser extension and desktop app share a WASM SDK component
+with a confirmed upstream bug against self-hosted Vaultwarden servers:
+login and sync succeed, but the vault fails to render, while the web vault
+(a separate codebase) is unaffected. This is a widely reported bug
+(multiple open issues on `bitwarden/clients` and `dani-garcia/vaultwarden`),
+not specific to this homelab.
+
+Bitwarden's server release notes state client v2026.7.0 requires
+**Vaultwarden 1.37.0+** for compatibility. This server was still on
+**1.36.0** (installed 2026-06-17) when this was hit — the affected client
+had silently auto-updated to 2026.7.0 in the background, independent of
+any homelab-side change, which is why the timing coincided with (but was
+not caused by) the CT renumbering.
+
+**Fix:**
+
+1. Upgrade Vaultwarden on the `vaultwarden` LXC (`192.168.2.11`) to
+   `1.37.0` or later:
+
+```bash
+   cd /opt/vaultwarden
+   docker compose pull
+   docker compose up -d
+   docker compose ps               # confirm the new image is running
+   docker compose logs --tail=50   # check for startup errors
+```
+
+`docker-compose.yml` already points at `vaultwarden/server:latest`, so
+`pull` is sufficient — no compose file edit needed. 2. On the affected client, force a sync (or restart the app) and confirm
+the vault now renders. 3. **If still broken after the server upgrade** (reported by some users
+even on 1.37.0+): the confirmed workaround is downgrading that specific
+client to `2026.6.1` via the browser extension store's version history,
+or the desktop installer archive from Bitwarden's GitHub releases — a
+manual step on the affected machine, outside what SSH access to the LXC
+can address. 4. Update the version noted in `docs/services/vaultwarden.md` and add a
+`docs/changelog.md` entry once resolved.
+
+**Note:** not caused by, and unrelated to, the `vaultwarden` LXC ID
+renumbering (110 → 111) performed the same week — included here for the
+record since the timing was initially misleading.
