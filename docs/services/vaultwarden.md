@@ -22,7 +22,7 @@ LXC is unprivileged with `nesting=1` and `keyctl=1` features enabled.
 
 ## Status
 
-- **2026-08-17:** Upgraded Vaultwarden from 1.36.0 to 1.37.1 via `docker compose pull` and `docker compose up -d` on the `vaultwarden` LXC (`192.168.2.11`). Resolves compatibility issues with Bitwarden 2026.7.0+ desktop/browser extension clients (see `docs/troubleshooting.md`).
+- **2026-08-17:** Upgraded Vaultwarden from 1.36.0 to 1.37.1 via `docker compose pull` and `docker compose up -d` on the `vaultwarden` LXC (`192.168.2.11`). Resolves compatibility issues with Bitwarden 2026.7.0+ desktop/browser extension clients (see `docs/troubleshooting.md`). Verified success from a Bitwarden client.
 - **2026-08-14:** Identified that Bitwarden client v2026.7.0 (desktop app
   and browser extension) fails to render the vault against this server,
   which is still on 1.36.0 — see `docs/troubleshooting.md`. Upgrade to

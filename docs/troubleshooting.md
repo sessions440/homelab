@@ -160,3 +160,5 @@ can address. 4. Update the version noted in `docs/services/vaultwarden.md` and a
 **Note:** not caused by, and unrelated to, the `vaultwarden` LXC ID
 renumbering (110 → 111) performed the same week — included here for the
 record since the timing was initially misleading.
+
+**Resolved.** Verified success from a Bitwarden client.
