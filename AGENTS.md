@@ -115,7 +115,7 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 
 ### vaultwarden — `192.168.2.11`
 
-- **Status:** Running. Vaultwarden 1.36.0 via Docker Compose; Caddy proxying to `192.168.2.11:8080`
+- **Status:** Running. Vaultwarden 1.37.1 via Docker Compose; Caddy proxying to `192.168.2.11:8080`
 - **Purpose:** Self-hosted Bitwarden-compatible password manager
 - **Runtime:** Docker Compose at `/opt/vaultwarden/`; admin token via `ADMIN_TOKEN_FILE`
 - **Docs:** `docs/services/vaultwarden.md`
