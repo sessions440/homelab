@@ -74,13 +74,13 @@ human to run manually.
 
 ## VM / LXC Inventory
 
-| Name          | ID  | Type               | IP             | RAM    | Disk   | OS        | Purpose                             |
-| ------------- | --- | ------------------ | -------------- | ------ | ------ | --------- | ----------------------------------- |
-| caddy         | 100 | LXC (unprivileged) | `192.168.2.3`  | 512 MB | 8 GB   | Debian 13 | Reverse proxy (Caddy)               |
-| immich        | 210 | VM                 | `192.168.2.10` | 12 GB  | 150 GB | Debian 13 | Docker host: Immich (deprioritized) |
-| vaultwarden   | 111 | LXC (unprivileged) | `192.168.2.11` | 512 MB | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
-| git | 112 | LXC (unprivileged) | `192.168.2.12` | 512 MB | 8 GB | Debian 13 | Bare git remote (LAN-only) |
-| minecraft     | 113 | LXC (unprivileged) | `192.168.2.13` | 8192 MB | 32 GB  | Debian 13 | Minecraft server (LAN-only)          |
+| Name        | ID  | Type               | IP             | RAM     | Disk   | OS        | Purpose                             |
+| ----------- | --- | ------------------ | -------------- | ------- | ------ | --------- | ----------------------------------- |
+| caddy       | 100 | LXC (unprivileged) | `192.168.2.3`  | 512 MB  | 8 GB   | Debian 13 | Reverse proxy (Caddy)               |
+| immich      | 210 | VM                 | `192.168.2.10` | 12 GB   | 150 GB | Debian 13 | Docker host: Immich (deprioritized) |
+| vaultwarden | 111 | LXC (unprivileged) | `192.168.2.11` | 512 MB  | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
+| git         | 112 | LXC (unprivileged) | `192.168.2.12` | 512 MB  | 8 GB   | Debian 13 | Bare git remote (LAN-only)          |
+| minecraft   | 113 | LXC (unprivileged) | `192.168.2.13` | 8192 MB | 32 GB  | Debian 13 | Minecraft server (LAN-only)         |
 
 ### LXC Provisioning Notes (Debian 13)
 
@@ -144,10 +144,10 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 
 Two keys are in use:
 
-| Key | User | Method |
-|-----|------|--------|
-| `~/.ssh/ai_homelab` | Claude Code | IP address + explicit `-i` flag; no Host aliases |
-| `~/.ssh/human_homelab` | Human interactive | `Host` aliases in `~/.ssh/config` |
+| Key                    | User              | Method                                           |
+| ---------------------- | ----------------- | ------------------------------------------------ |
+| `~/.ssh/ai_homelab`    | Claude Code       | IP address + explicit `-i` flag; no Host aliases |
+| `~/.ssh/human_homelab` | Human interactive | `Host` aliases in `~/.ssh/config`                |
 
 Claude Code connects via IP with an explicit `-i` flag, for example:
 
@@ -160,6 +160,14 @@ interactive access and use `human_homelab`. Claude Code does not use them.
 **Do not add a Host alias block for `192.168.2.2` (Proxmox host).**
 
 See `docs/setup/ssh.md` for full key strategy, provisioning steps, and config.
+
+---
+
+## External Infrastructure
+
+| Name      | Provider     | Region       | Public IP | OS     | Purpose                                                   |
+| --------- | ------------ | ------------ | --------- | ------ | --------------------------------------------------------- |
+| vps-relay | Oracle Cloud | ca-toronto-1 | TBD       | Debian | FRP relay for CGNAT traversal (Minecraft external access) |
 
 ---
 
@@ -302,10 +310,10 @@ The human is currently very new to coding agents. Err on the side of human inter
 
 Commits in this repo use two identities — no personal names or real email addresses:
 
-| Author | Name | Email |
-|---|---|---|
+| Author                                 | Name    | Email             |
+| -------------------------------------- | ------- | ----------------- |
 | Human-authored (any human involvement) | `Human` | `human@localhost` |
-| AI-authored (solely by AI) | `AI` | `ai@localhost` |
+| AI-authored (solely by AI)             | `AI`    | `ai@localhost`    |
 
 When running git commits, always pass `--author` explicitly to set the correct identity regardless of the local git config. Example:
 
