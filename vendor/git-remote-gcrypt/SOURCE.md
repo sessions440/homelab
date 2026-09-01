@@ -1,0 +1,1 @@
+fetched from github.com/spwhitton/git-remote-gcrypt @ a5ff704d071f14b95b6b1fa0caa8cdbf0c6cdadb, 2026-09-01
