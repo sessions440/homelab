@@ -29,7 +29,7 @@ storage-lesson from further back:
 
 - [ ] Is dropbear (SSH) reachable from WAN, or LAN-only? Not yet checked.
 - [ ] Is SSH key-only auth (disabling password auth) safe to enable now
-  that `ai_homelab`/`human_homelab` keys are authorized? Any lockout risk?
+  that `ai_homelab`/`human_homelab` keys are authorized? Any lockout risk? Does LuCI login still work?
 - [ ] What's the right remote syslog target — existing LXC or new one?
 
 ---

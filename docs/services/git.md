@@ -144,6 +144,18 @@ git clone git@192.168.2.12:/srv/git/<repo>.git
 | `ai_homelab` | Claude Code automated access |
 | `human_homelab` | Human access from primary machine |
 
+## Deleting a repository
+
+SSH into the server as root, then remove the bare repo directory:
+
+```bash
+rm -rf /srv/git/<repo>.git
+```
+
+Permanent, no soft-delete or trash. No client-side action is needed — git
+simply reports "repository not found" on the next fetch/push attempt
+against that remote.
+
 ## Security notes
 
 - Traffic is **cleartext on the server** — acceptable for LAN-only use, SSH-gated.

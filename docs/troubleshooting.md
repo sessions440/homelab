@@ -165,6 +165,133 @@ record since the timing was initially misleading.
 
 ---
 
+## encrypted-git setup: `rrsync` not at the path older guides expect (2026-09-01)
+
+**Symptom:** `/usr/share/rsync/scripts/rrsync` doesn't exist on the
+`encrypted-git` LXC (Debian 13).
+
+**Cause:** Many guides describe `rrsync` as a script template that needs
+copying into place and `chmod +x`'d. On Debian 13's `rsync` package, it
+ships pre-built and ready to use directly at `/usr/bin/rrsync` — no copy
+step needed.
+
+**Fix:** Point the SSH forced command at `/usr/bin/rrsync` directly. If
+this changes again on a future Debian release, `dpkg -L rsync | grep
+rrsync` will show the actual installed path.
+
+---
+
+## git-remote-gcrypt: `rsync: not found` on a network-restricted client (2026-09-01)
+
+**Symptom:** `git push` to a `gcrypt::rsync://` remote fails with
+`.../git-remote-gcrypt: 289: rsync: not found`.
+
+**Cause:** `git-remote-gcrypt`'s rsync backend shells out to a local
+`rsync` binary on the *client* as well as the server. The client in this
+case was a Qubes AppVM with LAN-only network access, so `apt install
+rsync` from inside the AppVM itself couldn't reach Debian's mirrors.
+
+**Fix:** Install `rsync` at the TemplateVM level (which has network
+access), then fully restart the AppVM — not just its applications —
+since Qubes AppVMs boot from a fresh template snapshot each time:
+
+```bash
+qvm-run -u root <template-name> "apt update && apt install -y rsync"
+qvm-shutdown <appvm-name>
+qvm-start <appvm-name>
+```
+
+If the TemplateVM was already running, shut it down first. Confirm with
+`which rsync` on the AppVM afterward.
+
+**Note:** if the target AppVM shares a template with other AppVMs, they
+inherit `rsync` too — harmless in practice, but worth checking given how
+compartmentalized this particular setup otherwise is.
+
+---
+
+## gcrypt push: `Permission denied (publickey)` despite a correct key (2026-09-01)
+
+**Symptom:** `git push` to a `gcrypt::` remote fails with
+`gcrypt@<host>: Permission denied (publickey)`, even though the key is
+correctly authorized on the server and works fine for plain `ssh` tests
+using a differently-named `Host` alias.
+
+**Cause:** SSH matches `Host` blocks in `~/.ssh/config` against the literal
+hostname string used on the command line. The hostname embedded in a
+`gcrypt::rsync://...` URL is exactly that literal string — a shorter alias
+(e.g. `Host encrypted-git`) does not match a URL spelling out
+`encrypted-git.home.arpa`, so the wrong (or no) identity file gets used.
+
+**Fix:** The `Host` block must be spelled exactly as the hostname appears
+in the gcrypt remote URL:
+
+```
+Host encrypted-git.home.arpa
+    IdentityFile ~/.ssh/<key>
+```
+
+---
+
+## rrsync forced command silently never runs — 0 bytes transferred (2026-09-01)
+
+**Symptom:** SSH authentication succeeds, but the connection closes
+immediately with `rsync: connection unexpectedly closed (0 bytes received
+so far) [sender]` / `rsync error: unexplained error (code 255)`.
+
+**Cause:** The `gcrypt` service account's login shell was `/bin/false`.
+Even with a forced `command=` in `authorized_keys`, `sshd` still executes
+that command via the account's configured shell
+(`<shell> -c "<forced command>"`). `/bin/false` exits immediately without
+ever running its argument, so the forced `rrsync` command silently never
+executes and the session just dies.
+
+**Fix:** Set the account's shell to something that actually execs its
+argument:
+
+```bash
+usermod -s /bin/sh gcrypt
+```
+
+This does not weaken the access restriction — `no-pty` plus the forced
+`command=` already fully constrain the session. The shell is only the
+plumbing `sshd` needs to invoke anything, forced or not.
+
+---
+
+## rrsync path doubling: `change_dir ".../srv/gcrypt/srv/gcrypt" failed` (2026-09-01)
+
+**Symptom:** `git push` to a freshly-configured `gcrypt::rsync://` remote
+fails with:
+
+```
+rsync: [Receiver] change_dir#3 "/srv/gcrypt/srv/gcrypt" failed: No such file or directory (2)
+```
+
+**Cause:** `rrsync <root>` (configured in the server's forced SSH command,
+e.g. `command="/usr/bin/rrsync /srv/gcrypt"`) prepends its configured root
+to whatever path the client requests — it does not chroot in the
+traditional sense. If the gcrypt remote URL *also* includes the real
+absolute server path, the root gets applied twice.
+
+**Fix:** The path in a `gcrypt::rsync://` URL must be relative to
+`rrsync`'s configured root, not the real filesystem path on the server:
+
+```
+gcrypt::rsync://gcrypt@encrypted-git.home.arpa/<reponame>
+```
+
+never
+
+```
+gcrypt::rsync://gcrypt@encrypted-git.home.arpa/srv/gcrypt/<reponame>
+```
+
+The real directory (created via `mkdir`/`chown` on the server) keeps its
+full absolute path — only the client-facing URL path changes.
+
+---
+
 ## Router: blank-password root SSH login, initially mistaken for intrusion (2026-09-02)
 
 **Symptom:** OpenWrt syslog showed a successful root SSH login with a

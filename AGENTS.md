@@ -85,11 +85,15 @@ human to run manually.
 | vaultwarden | 111 | LXC (unprivileged) | `192.168.2.11` | 512 MB  | 8 GB   | Debian 13 | Password manager (Vaultwarden)      |
 | git         | 112 | LXC (unprivileged) | `192.168.2.12` | 512 MB  | 8 GB   | Debian 13 | Bare git remote (LAN-only)          |
 | minecraft   | 113 | LXC (unprivileged) | `192.168.2.13` | 8192 MB | 32 GB  | Debian 13 | Minecraft server (LAN-only)         |
+| encrypted-git | 114 | LXC (unprivileged) | `192.168.2.14` | 512 MB | 8 GB   | Debian 13 | Encrypted git storage backend (git-remote-gcrypt) |
 
 ### LXC Provisioning Notes (Debian 13)
 
 Debian 13 ships with systemd 257, which requires the `nesting` feature enabled
-or systemd services may misbehave. Always set at creation or immediately after:
+or systemd services may misbehave. The Proxmox web UI's CT creation wizard
+exposes a `nesting` checkbox directly in the Features step — enable it there
+at creation time; this is the preferred path. If a container was created
+without it, set it post-creation via CLI:
 
 ```bash
 pct set <id> --features nesting=1
@@ -155,6 +159,14 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 - **Runtime:** Bare JVM via systemd (no Docker) — unit `minecraft.service`
 - **Docs:** `docs/services/minecraft.md`
 
+### encrypted-git — `192.168.2.14`
+
+- **Status:** Running. `git-remote-gcrypt` encrypted storage backend; dedicated `gcrypt` service account restricted to `rrsync` via a forced SSH command
+- **Purpose:** Opaque ciphertext storage for git repos with sensitivity beyond what the plaintext LAN-only git server (`192.168.2.12`) is acceptable for. Server never has access to plaintext — encryption happens entirely client-side, so SSH/host access here doesn't grant access to repo contents.
+- **Runtime:** `openssh-server` + `rsync` only — no git software on this host at all
+- **Access:** clients use `gcrypt::rsync://gcrypt@encrypted-git.home.arpa/<reponame>` remote URLs via the vendored `git-remote-gcrypt` script (not apt-installed; see `vendor/git-remote-gcrypt/`)
+- **Docs:** `docs/services/encrypted-git.md` (setup + operations), `docs/plan/encrypted-git.md` (tool comparison + decision rationale)
+
 ---
 
 ## SSH Access
@@ -162,7 +174,7 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 Two keys are in use:
 
 | Key                    | User              | Method                                           |
-| ----------------------- | ----------------- | ------------------------------------------------ |
+| ---------------------- | ----------------- | ------------------------------------------------ |
 | `~/.ssh/ai_homelab`    | Claude Code       | IP address + explicit `-i` flag; no Host aliases |
 | `~/.ssh/human_homelab` | Human interactive | `Host` aliases in `~/.ssh/config`                |
 
@@ -184,7 +196,7 @@ See `docs/setup/ssh.md` for full key strategy, provisioning steps, and config.
 ## External Infrastructure
 
 | Name      | Provider     | Region       | Public IP | OS     | Purpose                                                   |
-| --------- | ------------ | ------------ | --------- | ------ | ----------------------------------------------------------|
+| --------- | ------------ | ------------ | --------- | ------ | --------------------------------------------------------- |
 | vps-relay | Oracle Cloud | ca-toronto-1 | TBD       | Debian | FRP relay for CGNAT traversal (Minecraft external access) |
 
 ---
@@ -230,7 +242,7 @@ file manually (see setup instructions in `docs/setup/caddy-env.md`).
 #### Defined Variables
 
 | Variable         | Contains                         | Set in                 |
-| ---------------- | --------------------------------- | ----------------------- |
+| ---------------- | -------------------------------- | ---------------------- |
 | `HOMELAB_DOMAIN` | Public domain (e.g. example.com) | `/etc/caddy/caddy.env` |
 | `CF_API_TOKEN`   | Cloudflare API token (DNS-01)    | `/etc/caddy/caddy.env` |
 
@@ -278,7 +290,8 @@ homelab/
 │   │   ├── local-ai-stack.md    ← Local AI stack plan and decision log
 │   │   ├── proxmox-manual-backup.md
 │   │   ├── ai-model-costs.md
-│   │   └── router-hardening.md  ← Router hardening plan (WAN exposure, key-only SSH, remote syslog)
+│   │   ├── router-hardening.md  ← Router hardening plan (WAN exposure, key-only SSH, remote syslog)
+│   │   └── encrypted-git.md     ← git-remote-gcrypt tool comparison and decision log
 │   ├── setup/
 │   │   ├── etckeeper-proxmox.md ← etckeeper installation gotchas for Proxmox
 │   │   ├── ssh.md               ← SSH keypair setup and deployment notes
@@ -288,10 +301,13 @@ homelab/
 │   │   └── vps-relay.md
 │   └── services/
 │       ├── caddy.md             ← reverse proxy setup, Caddyfile, cert notes
-│       ├── vaultwarden.md
+│       ├── vaultwarden.md       ← (stub)
 │       ├── git.md
 │       ├── immich.md            ← setup history, config notes, lessons learned
-│       └── minecraft.md
+│       ├── minecraft.md         ← (stub)
+│       └── encrypted-git.md     ← git-remote-gcrypt server + client setup, operations
+├── vendor/
+│   └── git-remote-gcrypt/       ← vendored copy of the upstream script + SOURCE.md provenance record
 └── scripts/                     ← helper scripts, if any
 ```
 
@@ -326,6 +342,12 @@ structured knowledge wiki (separate repo). When writing doc updates, favour:
 - Immich setup deprioritized; Docker not installed on immich
 - Minecraft VM not yet provisioned
 - git server LXC planned; threat model: cleartext acceptable for LAN-only use, SSH-gated. Offsite encrypted backup to follow.
+- encrypted-git LXC (ID 114) provisioned 2026-09-01 as a Tier 2 storage
+  backend for repos more sensitive than the plaintext git LXC's threat
+  model covers, using `git-remote-gcrypt` (vendored, not apt-installed —
+  see `vendor/git-remote-gcrypt/`). Server holds ciphertext only; see
+  `docs/plan/encrypted-git.md` for the tool comparison and decision
+  rationale, `docs/services/encrypted-git.md` for setup and operations.
 
 ## Inexperience with coding agents
 
@@ -336,7 +358,7 @@ The human is currently very new to coding agents. Err on the side of human inter
 Commits in this repo use two identities — no personal names or real email addresses:
 
 | Author                                 | Name    | Email             |
-| ---------------------------------------- | ------- | ------------------ |
+| -------------------------------------- | ------- | ----------------- |
 | Human-authored (any human involvement) | `Human` | `human@localhost` |
 | AI-authored (solely by AI)             | `AI`    | `ai@localhost`    |
 

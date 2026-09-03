@@ -2,6 +2,19 @@
 
 ---
 
+## 2026-09-01 — Encrypted git (git-remote-gcrypt) implemented
+
+- Provisioned `encrypted-git` LXC (ID 114, `192.168.2.14`, Debian 13, unprivileged, `nesting=1` set at creation via the Proxmox web UI)
+- Installed `openssh-server` + `rsync` only — no git software on this host
+- Created `gcrypt` service account restricted to `rrsync` via a forced SSH command (`no-pty`, `no-agent-forwarding`, `no-X11-forwarding`, `no-port-forwarding`); shell set to `/bin/sh` (see troubleshooting — `/bin/false` silently breaks forced commands)
+- Client setup on a dedicated, network-restricted (LAN-only) Qubes AppVM: generated a dedicated GPG key (ECC/Curve25519, passphrase-protected), generated and stored a revocation certificate, backed up the private key + revocation cert to durable storage outside the AppVM
+- Vendored `git-remote-gcrypt` (commit `a5ff704d071f14b95b6b1fa0caa8cdbf0c6cdadb`, fetched 2026-09-01) into `vendor/git-remote-gcrypt/`; installed to the AppVM via a Qubes disposable + `qvm-copy-to-vm` (the AppVM has no direct internet access); installed `rsync` on the AppVM via its TemplateVM
+- Validated end-to-end with a throwaway test repo: push, clone, and manual inspection of server-side files (content-hash filenames, ciphertext contents) all confirmed
+- New docs: `docs/services/encrypted-git.md` (setup + operations), `docs/plan/encrypted-git.md` (tool comparison against FOKS/git-crypt/git-secret/age-based alternatives, maintenance-risk assessment, repack performance analysis, security architecture rationale)
+- `docs/services/git.md` updated with a repo-deletion note
+- Several setup gotchas resolved along the way — see `docs/troubleshooting.md`
+- `AGENTS.md` inventory and LXC provisioning notes updated (nesting=1 can be set directly in the Proxmox web UI's CT creation wizard — no separate `pct set` step needed when done that way)
+
 ## 2026-08-17 — Vaultwarden upgraded to 1.37.1
 
 - Upgraded Vaultwarden container on `vaultwarden` LXC (`192.168.2.11`) from 1.36.0 to 1.37.1 via `docker compose pull` and `docker compose up -d`
