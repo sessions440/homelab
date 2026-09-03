@@ -162,3 +162,32 @@ renumbering (110 → 111) performed the same week — included here for the
 record since the timing was initially misleading.
 
 **Resolved.** Verified success from a Bitwarden client.
+
+---
+
+## Router: blank-password root SSH login, initially mistaken for intrusion (2026-09-02)
+
+**Symptom:** OpenWrt syslog showed a successful root SSH login with a
+blank password from a LAN IP (`192.168.2.147`), preceded by two failed
+"nonexistent user" attempts, followed by a LuCI login visiting the DHCP
+leases page — initially investigated as a possible intrusion.
+
+**Cause:** Self-triggered. Shell history confirmed `ssh 192.168.2.1`
+(defaults to local username, rejected as nonexistent user — likely run
+twice, deduped in history) followed by `ssh root@192.168.2.1`
+(succeeded, root's password was in fact blank at the time). The LuCI
+visit was the same troubleshooting session, checking DHCP leases while
+diagnosing an unrelated Android Wi-Fi connectivity issue. Qubes
+(`sys-net`) was ruled out as the source via MAC address and
+NetworkManager topology before the human-error explanation was found.
+
+**Fix:** Root password rotated to a non-blank value (unrelated to
+whether this was actually an intrusion — it was a real gap regardless).
+
+**Note:** `192.168.2.147`'s MAC (`9A:3A:EF:E3:B0:35`, locally-administered
+bit set) doesn't match any known homelab device. This and 4 other DHCP
+leases with blank hostnames and distinct randomized MACs remain
+unexplained — likely phones/guest devices with MAC-privacy features, but
+unconfirmed. Lease history was lost to a router reboot before this could
+be resolved. Not currently worth further investigation; revisit if a
+similar pattern recurs.

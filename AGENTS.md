@@ -11,7 +11,10 @@
 - Do not run `docker compose down -v` or any command that destroys named volumes
   without explicit written confirmation in this session.
 - Do not modify networking configs: `/etc/network/interfaces`, `/etc/netplan/`,
-  firewall rules, or bridge configs on any host.
+  firewall rules, or bridge configs on any host — **including the OpenWrt
+  router** (`192.168.2.1`, SSH-accessible via `ai_homelab`/`human_homelab`
+  keys as of 2026-09). Read-only recon on the router is fine; any config
+  change, service restart, or reboot needs explicit written confirmation.
 - Do not delete or overwrite `.env` files.
 - If a planned action could cause data loss or service downtime, **stop and confirm**
   before proceeding.
@@ -50,7 +53,8 @@ human to run manually.
 
 ## Network Topology
 
-- **Router:** OpenWrt (D-Link DIR-885L)
+- **Router:** OpenWrt (D-Link DIR-885L), `192.168.2.1`. See "Router" under
+  Service Inventory below for access and status.
 - **DNS:** AdGuard Home on port 53 with conditional upstream for `home.arpa`
 - **DHCP:** dnsmasq, port 5335 only
 - **Public DNS:** Cloudflare (domain delegated from Namecheap; free tier)
@@ -97,6 +101,19 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 ---
 
 ## Service Inventory
+
+### router — `192.168.2.1`
+
+- **Status:** OpenWrt (D-Link DIR-885L). SSH-accessible via
+  `ai_homelab`/`human_homelab` keys (added 2026-09-02). No `Host` alias yet
+  in `~/.ssh/config` — connect via IP.
+- **Purpose:** DHCP (dnsmasq/odhcpd), AdGuard DNS, Wi-Fi AP, WAN/LAN routing.
+  See Network Topology above for the broader DNS/DHCP architecture.
+- **Access policy:** read-only recon is fine; config changes, restarts, and
+  reboots need explicit written confirmation (see Hard Limits above).
+- **Pending hardening work:** see `docs/plan/router-hardening.md`.
+- **Docs:** `docs/troubleshooting.md` has a resolved false-alarm security
+  entry from 2026-09-02 worth reading for context before touching this device.
 
 ### caddy — `192.168.2.3`
 
@@ -145,7 +162,7 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 Two keys are in use:
 
 | Key                    | User              | Method                                           |
-| ---------------------- | ----------------- | ------------------------------------------------ |
+| ----------------------- | ----------------- | ------------------------------------------------ |
 | `~/.ssh/ai_homelab`    | Claude Code       | IP address + explicit `-i` flag; no Host aliases |
 | `~/.ssh/human_homelab` | Human interactive | `Host` aliases in `~/.ssh/config`                |
 
@@ -157,7 +174,8 @@ ssh -i ~/.ssh/ai_homelab root@192.168.2.3
 
 The `Host` aliases in `~/.ssh/config` (caddy, vaultwarden, git) are for human
 interactive access and use `human_homelab`. Claude Code does not use them.
-**Do not add a Host alias block for `192.168.2.2` (Proxmox host).**
+The router (`192.168.2.1`) is also authorized for both keys but has no
+`Host` alias yet. **Do not add a Host alias block for `192.168.2.2` (Proxmox host).**
 
 See `docs/setup/ssh.md` for full key strategy, provisioning steps, and config.
 
@@ -166,7 +184,7 @@ See `docs/setup/ssh.md` for full key strategy, provisioning steps, and config.
 ## External Infrastructure
 
 | Name      | Provider     | Region       | Public IP | OS     | Purpose                                                   |
-| --------- | ------------ | ------------ | --------- | ------ | --------------------------------------------------------- |
+| --------- | ------------ | ------------ | --------- | ------ | ----------------------------------------------------------|
 | vps-relay | Oracle Cloud | ca-toronto-1 | TBD       | Debian | FRP relay for CGNAT traversal (Minecraft external access) |
 
 ---
@@ -212,7 +230,7 @@ file manually (see setup instructions in `docs/setup/caddy-env.md`).
 #### Defined Variables
 
 | Variable         | Contains                         | Set in                 |
-| ---------------- | -------------------------------- | ---------------------- |
+| ---------------- | --------------------------------- | ----------------------- |
 | `HOMELAB_DOMAIN` | Public domain (e.g. example.com) | `/etc/caddy/caddy.env` |
 | `CF_API_TOKEN`   | Cloudflare API token (DNS-01)    | `/etc/caddy/caddy.env` |
 
@@ -251,22 +269,29 @@ If a task is high-risk and no snapshot has been confirmed, flag it before procee
 
 ```
 homelab/
-├── CLAUDE.md                    ← this file; keep current
+├── AGENTS.md                    ← this file; keep current
 ├── docs/
 │   ├── architecture.md          ← network diagram, hardware, design decisions
 │   ├── changelog.md             ← dated log of all changes
 │   ├── troubleshooting.md       ← problems encountered and resolutions
 │   ├── plan/
-│   │   ├── local-ai-stack.md    ← Pending local AI stack plan and decision log
+│   │   ├── local-ai-stack.md    ← Local AI stack plan and decision log
+│   │   ├── proxmox-manual-backup.md
+│   │   ├── ai-model-costs.md
+│   │   └── router-hardening.md  ← Router hardening plan (WAN exposure, key-only SSH, remote syslog)
 │   ├── setup/
 │   │   ├── etckeeper-proxmox.md ← etckeeper installation gotchas for Proxmox
 │   │   ├── ssh.md               ← SSH keypair setup and deployment notes
-│   │   └── caddy-env.md         ← manual env file setup on caddy LXC
+│   │   ├── caddy-env.md         ← manual env file setup on caddy LXC
+│   │   ├── proxmox-nvidia-driver-setup.md
+│   │   ├── vaultwarden-migration.md
+│   │   └── vps-relay.md
 │   └── services/
 │       ├── caddy.md             ← reverse proxy setup, Caddyfile, cert notes
-│       ├── vaultwarden.md       ← (stub)
+│       ├── vaultwarden.md
+│       ├── git.md
 │       ├── immich.md            ← setup history, config notes, lessons learned
-│       └── minecraft.md         ← (stub)
+│       └── minecraft.md
 └── scripts/                     ← helper scripts, if any
 ```
 
@@ -311,7 +336,7 @@ The human is currently very new to coding agents. Err on the side of human inter
 Commits in this repo use two identities — no personal names or real email addresses:
 
 | Author                                 | Name    | Email             |
-| -------------------------------------- | ------- | ----------------- |
+| ---------------------------------------- | ------- | ------------------ |
 | Human-authored (any human involvement) | `Human` | `human@localhost` |
 | AI-authored (solely by AI)             | `AI`    | `ai@localhost`    |
 
