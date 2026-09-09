@@ -156,6 +156,14 @@ Permanent, no soft-delete or trash. No client-side action is needed — git
 simply reports "repository not found" on the next fetch/push attempt
 against that remote.
 
+## Manual backup for a repository
+
+Create a tar file and store a copy somewhere safe.
+
+```
+tar czf myrepo-$(date +%Y%m%d).tar.gz /path/to/myrepo
+```
+
 ## Security notes
 
 - Traffic is **cleartext on the server** — acceptable for LAN-only use, SSH-gated.
