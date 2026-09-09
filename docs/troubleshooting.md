@@ -290,6 +290,41 @@ gcrypt::rsync://gcrypt@encrypted-git.home.arpa/srv/gcrypt/<reponame>
 The real directory (created via `mkdir`/`chown` on the server) keeps its
 full absolute path — only the client-facing URL path changes.
 
+**Alternate symptom — porting an existing remote:** the doubled path
+doesn't always surface as an explicit `change_dir` error. When re-pointing
+an existing repo's `origin` at a gcrypt remote (e.g. via a shell-history
+command that still has the wrong path baked in), the failure can instead
+look like a generic, earlier-stage failure:
+
+```
+gcrypt: Repository not found: rsync://gcrypt@<host>/srv/gcrypt/<reponame>
+gcrypt: Setting up new repository
+error: failed to push some refs to '...'
+```
+
+Same root cause, same fix (drop the `/srv/gcrypt` prefix from the URL) —
+this just fails before rsync ever prints the more explicit `change_dir`
+message.
+
+**Residue to check after a failed attempt like this:** `git-remote-gcrypt`
+writes a `remote.<name>.gcrypt-id` value to local git config as soon as it
+decides "no repo found, must be new" — before any network I/O, and
+regardless of whether the push subsequently succeeds. If you retry against
+a corrected URL under the *same* remote name, that stale ID can make the
+script misinterpret the correct-but-still-repo-less URL as "a real repo
+that's since disappeared," and abort instead of creating it. Check for and
+clear it before retrying:
+
+```bash
+git config --get remote.origin.gcrypt-id   # or whatever your remote is named
+git config --unset remote.origin.gcrypt-id # if it printed anything
+```
+
+No server-side cleanup is needed in this scenario — `rrsync`'s root
+confinement means any artifact from a failed attempt is, at worst, a
+harmless empty directory under `/srv/gcrypt`, and the actual content
+upload never runs until after the path/repo-id checks succeed.
+
 ---
 
 ## Router: blank-password root SSH login, initially mistaken for intrusion (2026-09-02)
