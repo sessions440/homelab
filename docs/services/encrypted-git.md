@@ -195,6 +195,8 @@ sshd resolves through its own `authorized_keys` matching regardless of this
 
 ### 4. GPG key
 
+#### Generate a new key
+
 Generate a **dedicated** key for this purpose — do not reuse a personal or
 communication identity:
 
@@ -222,6 +224,18 @@ password-reset equivalent for a lost private key — losing the only copy
 means every repo encrypted to it is permanently unrecoverable. The
 revocation cert doesn't help with recovery either; it only lets you declare
 the key dead going forward.
+
+#### Import existing key
+
+Import the key file:
+
+```bash
+gpg --import /path/to/gcrypt-private-key-backup.asc
+```
+
+You may need to set the trust level to "ultimate" using `gpg --edit-key <key-id>` then enter `trust` then `5`. Exit the GPG session via `quit`.
+
+#### Configure Git to use your GPG key
 
 Set the default recipient for every gcrypt push from this client:
 
