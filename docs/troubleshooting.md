@@ -353,3 +353,58 @@ unexplained — likely phones/guest devices with MAC-privacy features, but
 unconfirmed. Lease history was lost to a router reboot before this could
 be resolved. Not currently worth further investigation; revisit if a
 similar pattern recurs.
+
+---
+
+## gcrypt push fails with `gpg: ... No secret key`, unrelated to SSH config (2026-09-03)
+
+**Symptom:** Push to a `gcrypt::` remote gets past SSH auth and repo setup
+fine (`Setting up new repository`, `Remote ID is ...`), then fails while
+signing the manifest:
+
+```
+gcrypt: Requesting manifest signature
+gpg: skipped "/Users/<user>/.ssh/id_ed25519.pub": No secret key
+gpg: [stdin]: sign+encrypt failed: No secret key
+error: failed to push some refs to '...'
+```
+
+Easy to mistake for an SSH problem given the `.ssh/` path in the error —
+it isn't. SSH auth has already succeeded by this point in the push.
+
+**Cause:** `git-remote-gcrypt` always **signs**, not just encrypts, the
+manifest. It picks a signing key via:
+
+```
+git config --get remote.<name>.gcrypt-signingkey   # checked first
+git config --path user.signingkey                  # fallback if unset
+```
+
+On a machine set up for the common modern GitHub workflow of signing
+commits with an SSH key instead of real GPG (`git config gpg.format ssh`,
+`user.signingkey ~/.ssh/id_ed25519.pub`), gcrypt blindly passes that
+*path to an SSH public key file* to real `gpg -u` — which has no matching
+GPG secret key, so the sign+encrypt operation fails outright.
+
+**Fix:** Override the signing key for the gcrypt remote specifically, so
+it never falls through to `user.signingkey`:
+
+```bash
+git config remote.<name>.gcrypt-signingkey <gpg-key-id>
+```
+
+Confirm the chosen key actually has a usable secret key on this machine
+first — signing requires the private half to be physically present,
+independent of whatever key(s) are configured as encryption recipients
+via `gcrypt.participants` (signing and encryption-recipient are separate
+roles here):
+
+```bash
+gpg --list-secret-keys <gpg-key-id>
+```
+
+**Related:** if this happens on a repo's first push, `remote.<name>.gcrypt-id`
+has already been written to local git config before the crash (see the
+"rrsync path doubling" entry above, "Residue to check after a failed
+attempt") — clear it before retrying or the retry will fail differently
+(`repository ID is set. Aborting`) even after the signing key is fixed.
