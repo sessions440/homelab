@@ -408,3 +408,63 @@ has already been written to local git config before the crash (see the
 "rrsync path doubling" entry above, "Residue to check after a failed
 attempt") — clear it before retrying or the retry will fail differently
 (`repository ID is set. Aborting`) even after the signing key is fixed.
+
+---
+
+## gcrypt push fails with `gpg: signing failed: Inappropriate ioctl for device` (2026-09-03)
+
+**Symptom:** After the SSH/repo-setup and signing-key config are both
+correct, the push still fails at the manifest-signing step:
+
+```
+gcrypt: Requesting manifest signature
+gpg: signing failed: Inappropriate ioctl for device
+gpg: [stdin]: sign+encrypt failed: Inappropriate ioctl for device
+```
+
+**Cause:** `git-remote-gcrypt`'s `rungpg()` helper is aware of this class
+of error — its own comment says so — and tries to add `--no-tty` to avoid
+it, but only when `$GPG_AGENT_INFO` is set:
+
+```sh
+if [ "x$GPG_AGENT_INFO" != "x" ]; then
+    ${GPG} --no-tty $@
+else
+    ${GPG} $@
+fi
+```
+
+`GPG_AGENT_INFO` was removed from GnuPG after 2.1 — agent discovery is
+automatic now. On any modern GnuPG install (confirmed on 2.4.7) this
+variable is never set, so the guard's condition is always false and
+`--no-tty` never gets added, silently reproducing the exact failure the
+comment describes. A real bug in the vendored script, separate from the
+implicit-force-push one — see
+[`vendor/git-remote-gcrypt/force-push-patch-notes.md`](../../vendor/git-remote-gcrypt/force-push-patch-notes.md)
+for the pattern of documenting these; this one hasn't been written up
+there yet as of this entry.
+
+**Fix — most reliable, sidesteps the tty/pinentry plumbing entirely:**
+pre-authenticate with gpg-agent in a normal terminal before the push runs,
+so it caches the already-unlocked key and the automated flow never needs
+an interactive prompt to succeed:
+
+```bash
+echo test | gpg --clearsign --default-key <gpg-key-id> > /dev/null
+```
+
+**Alternative — fix the tty binding directly:**
+
+```bash
+export GPG_TTY=$(tty)
+```
+
+If that alone isn't sufficient, check `~/.gnupg/gpg-agent.conf` for a
+working `pinentry-program`; a GUI pinentry (e.g. `pinentry-mac` on macOS,
+via Homebrew) tends to be more robust than a tty-based one for this
+specific git-spawns-script-spawns-gpg subprocess chain, since it doesn't
+depend on inheriting a controlling terminal at all.
+
+**Related:** clear `remote.<name>.gcrypt-id` again before retrying — this
+failed attempt will have written a fresh one, same as the two entries
+above.
