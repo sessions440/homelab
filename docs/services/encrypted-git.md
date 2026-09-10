@@ -313,6 +313,48 @@ mechanics and sizing reasoning.
 
 ---
 
+## Force-push behavior — no fast-forward protection
+
+Every ordinary push (i.e. anything that isn't an explicit `git push --force`)
+prints this:
+
+```
+gcrypt: Due to a longstanding bug, this push implicitly has --force.
+gcrypt: Consider explicitly passing --force, and setting
+gcrypt: gcrypt's require-explicit-force-push git config key.
+```
+
+This isn't specific to a real conflict — it prints on **every** non-force
+push, including a perfectly ordinary fast-forward, because the script has
+no code path that distinguishes the two cases. It always overwrites the
+remote's ref entry unconditionally. See
+[`vendor/git-remote-gcrypt/force-push-patch-notes.md`](../../vendor/git-remote-gcrypt/force-push-patch-notes.md)
+for the root cause and a concrete fix sketch, if this is ever worth
+patching.
+
+**The config gcrypt is suggesting:**
+
+```bash
+git config --global gcrypt.require-explicit-force-push true
+```
+
+This does **not** add real fast-forward protection. It only changes an
+*implicit* always-force into a gate that makes you type `git push --force`
+consciously — a guard against absent-mindedness, not against a genuine
+divergence between two clients.
+
+**Practical implication for this setup:** since multi-client access to the
+same repo via `gcrypt.participants` is fully supported (see Client setup
+above) and nothing here provides fast-forward checking regardless of this
+config, pushing the same repo from two clients with diverged local history
+will silently clobber whichever one pushes second — no error, no extra
+warning beyond the generic one above. The only real protection is
+procedural: **always `git fetch`/`pull` before pushing** if more than one
+client might touch a given repo, since there's no tooling-level backstop
+for this.
+
+---
+
 ## Security notes
 
 - Server never has access to plaintext — encryption is entirely
