@@ -3,6 +3,7 @@
 Self-hosted Minecraft Java Edition server for LAN-only play. Internet exposure
 (via WireGuard or a tunnel) is planned for later, once this is stable.
 
+ **TODO** split this doc into `docs/plan/minecraft.md` (the "why?") and `docs/services/minecraft.md` (the "how?") following the pattern of `encrypted-git.md`
 ---
 
 ## Infrastructure
