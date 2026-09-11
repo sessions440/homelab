@@ -4,7 +4,9 @@
 > re-deriving this from the script. Applies to the vendored copy at
 > `vendor/git-remote-gcrypt/git-remote-gcrypt`, commit `a5ff704...` per
 > `SOURCE.md`. If re-vendoring a newer commit later, re-check whether this
-> is still accurate — line numbers especially will drift.
+> is still accurate — line numbers especially will drift. See
+> [`gpg-tty-patch-notes.md`](gpg-tty-patch-notes.md) for a second,
+> smaller, unrelated bug found in the same script.
 
 ---
 

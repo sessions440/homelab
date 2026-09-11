@@ -440,9 +440,8 @@ variable is never set, so the guard's condition is always false and
 `--no-tty` never gets added, silently reproducing the exact failure the
 comment describes. A real bug in the vendored script, separate from the
 implicit-force-push one — see
-[`vendor/git-remote-gcrypt/force-push-patch-notes.md`](../../vendor/git-remote-gcrypt/force-push-patch-notes.md)
-for the pattern of documenting these; this one hasn't been written up
-there yet as of this entry.
+[`vendor/git-remote-gcrypt/gpg-tty-patch-notes.md`](../../vendor/git-remote-gcrypt/gpg-tty-patch-notes.md)
+for the root cause, a fix sketch, and upstream contribution notes.
 
 **Fix — most reliable, sidesteps the tty/pinentry plumbing entirely:**
 pre-authenticate with gpg-agent in a normal terminal before the push runs,
