@@ -467,3 +467,203 @@ depend on inheriting a controlling terminal at all.
 **Related:** clear `remote.<name>.gcrypt-id` again before retrying — this
 failed attempt will have written a fresh one, same as the two entries
 above.
+
+---
+
+## gcrypt manifest decrypt fails despite a "Good signature" line printing first (2026-09-11)
+
+**Symptom:** `git push`/`pull` against a `gcrypt::` remote fails with:
+
+```
+gpg: ecdh failed in gcry_cipher_decrypt: Checksum error
+gpg: Signature made ...
+gpg: Good signature from "..." [ultimate]
+gcrypt: Failed to decrypt manifest!
+```
+
+The `Good signature` line proves decryption already succeeded — GPG
+cannot verify a signature without the plaintext — yet the script still
+reports failure.
+
+**Cause:** `gcrypt.participants` had more than one entry, encrypted with
+hidden (`-R`) recipients (the default when `gcrypt.publish-participants`
+is unset). GPG must try each local secret key against each recipient
+packet in turn; a failed trial against a non-matching key logs the
+"Checksum error" noise and leaves GPG's own process exit code non-zero,
+even though a later trial against the correct key succeeds and produces
+verified plaintext. `git-remote-gcrypt`'s `PRIVDECRYPT()` trusts that raw
+exit code, so a fully successful decrypt gets treated as a hard failure.
+Root cause and fix sketch:
+[`vendor/git-remote-gcrypt/exit-code-patch-notes.md`](../vendor/git-remote-gcrypt/exit-code-patch-notes.md).
+
+**Fix:**
+
+```bash
+git config --global gcrypt.publish-participants true
+```
+
+Then push once more from a client holding a real ref change (an
+already-up-to-date push never invokes the helper's push path — see the
+`GCRYPT_FULL_REPACK` entry below for why that matters) so the manifest
+actually gets rewritten with visible recipients.
+
+**Only safe to unset again once exactly one participant remains** in
+`gcrypt.participants` — see the revocation entry below.
+
+---
+
+## Revoking a gcrypt participant: "Failed to verify manifest signature!" (2026-09-14)
+
+**Symptom:** After narrowing `gcrypt.participants` from `{A, B}` down to
+`{B}` (intending to revoke A's access), the very next push or pull fails:
+
+```
+gcrypt: Failed to verify manifest signature!
+gcrypt: Only accepting signatories:  <B's key ID>
+gcrypt: Failed to decrypt manifest!
+```
+
+**Cause:** `read_config()` derives two things from a single read of
+`gcrypt.participants` in the same call: which keys future manifests get
+*encrypted to*, and which signatures are *trusted* when verifying the
+manifest currently on the remote. Narrowing the list changes both at
+once. If the manifest sitting on the server was signed by A (the key
+you're revoking) and you've already dropped A from the trusted-signer
+set, every operation fails before it can get anywhere near writing a new
+manifest — including the push meant to perform the revocation itself.
+There is no code path that reaches manifest-rewriting logic without first
+passing this verification step.
+
+**Fix — revoke in two steps, not one:**
+
+1. **With the full participant list still in place** (`{A, B}`), force a
+   real push from a client holding B's secret key, so B becomes the
+   manifest's signer. A push that reports `Everything up-to-date` does
+   **not** count — git's ref comparison happens before the helper's push
+   path is ever invoked, so nothing gets rewritten. Force an actual ref
+   change first if needed:
+
+   ```bash
+   git commit --allow-empty -m "rekey checkpoint"
+   git push --force
+   ```
+
+   Confirm the signer actually changed before proceeding:
+
+   ```bash
+   git pull   # should show "Signature made ... using EDDSA key <B's fingerprint>"
+   ```
+
+2. **Only now narrow the participant list**, since the current signer (B)
+   is already inside the set you're narrowing to:
+
+   ```bash
+   git config --global gcrypt.participants "<B's fingerprint only>"
+   git commit --allow-empty -m "revoke A"
+   git push --force
+   ```
+
+Verification passes this time (current manifest is signed by B, and B is
+in the accepted set), and the new manifest is encrypted to B alone.
+
+**Scope of what this actually revokes:** only the server-side store going
+forward. Anything A already fetched is unaffected — there's no remote
+kill-switch for data a client has already decrypted locally. See
+`docs/plan/encrypted-git.md` for the full reasoning if this is ever
+revisited.
+
+**Cleanup note:** the empty checkpoint/revoke commits used to force the
+ref change are safe to drop afterward (`git reset --hard HEAD~N` +
+force-push), but each rewrite leaves the prior packfile orphaned on the
+server. Follow with a forced full repack (see next entry) to actually
+reclaim that storage.
+
+---
+
+## `GCRYPT_FULL_REPACK=1` silently does nothing on an up-to-date push (2026-09-14)
+
+**Symptom:** `GCRYPT_FULL_REPACK=1 git push --force` completes with
+`Everything up-to-date` and no `gcrypt: Repacking remote ...` line —
+looks successful, but no repack happened.
+
+**Cause:** `GCRYPT_FULL_REPACK` is only read inside `repack_if_needed()`,
+which is only called from `do_push()`. `do_push()` only runs if git's own
+ref comparison (done before the remote-helper protocol invokes `push` at
+all) finds an actual difference between local and remote refs. If nothing
+changed, the helper's `push` verb is never called, so the env var has no
+code path to act on — it isn't ignored, the function it lives in simply
+never executes.
+
+**Fix:** ensure there's a genuine ref change on the same push as the env
+var:
+
+```bash
+git commit --allow-empty -m "trigger full repack"
+GCRYPT_FULL_REPACK=1 git push --force
+```
+
+**Verifying a repack actually happened**, independent of the (sparse)
+terminal output: inspect the server directory directly. A successful full
+repack forces `Keeplist=` empty and consolidates every existing packfile
+into exactly one new one, so a clean single-participant repo should show
+exactly two files afterward — one packfile, one manifest:
+
+```bash
+ssh root@encrypted-git.home.arpa "ls -la /srv/gcrypt/<reponame>/"
+```
+
+**Efficiency note:** if a repack is already anticipated (e.g. right after
+a revocation or history rewrite), starting with
+`GCRYPT_FULL_REPACK=1 git push --force` directly — rather than an ordinary
+push followed by a separate full-repack push — avoids an unnecessary
+extra round-trip, as long as that first push carries a real ref change.
+
+---
+
+## gcrypt clone reports "Repository not found" for a repo that exists (2026-09-11)
+
+**Symptom:** `git clone gcrypt::rsync://...` fails immediately:
+
+```
+gcrypt: Repository not found: rsync://gcrypt@<host>/<repo>
+warning: You appear to have cloned an empty repository.
+```
+
+...even though the repo genuinely exists and other clients can reach it.
+
+**Cause:** On a fresh clone, `$Repoid` is always unset locally (no prior
+`remote.<name>.gcrypt-id` config exists yet), so `ensure_connected()`
+takes this branch on any `GET` failure:
+
+```sh
+GET "$URL" "$Manifestfile" "$tmp_manifest" 2>| "$tmp_stderr" || {
+    if ! isnull "$Repoid"; then
+        cat >&2 "$tmp_stderr"
+        ...
+    else
+        echo_info "Repository not found: $URL"
+        return 0
+    fi
+}
+```
+
+The `else` branch — the one taken on every fresh clone attempt —
+**discards `$tmp_stderr` entirely**. A genuinely-missing repo, a DNS
+failure, an SSH auth failure, and (as diagnosed live in this homelab) a
+plain typo in `~/.ssh/config`'s `Host` block all collapse into the exact
+same generic message. The message is not trustworthy as a diagnosis on a
+fresh clone — treat it as "the transport call failed for some reason,"
+not "no repo here."
+
+**Fix — test the transport layer directly, independent of git or gcrypt:**
+
+```bash
+which rsync                                  # confirms rsync itself is present
+ssh -v gcrypt@<host> true                    # DNS failure vs. auth failure vs. clean forced-command exit
+```
+
+In the specific case that prompted this entry, the actual cause was a
+typo in the client's `~/.ssh/config` `Host` block (must match the literal
+hostname in the gcrypt URL exactly — see the existing "Permission denied"
+entry above for the same underlying SSH-matching behavior). Once fixed,
+the identical clone command succeeded with no other changes.

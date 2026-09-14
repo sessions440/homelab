@@ -2,6 +2,16 @@
 
 ---
 
+## 2026-09-14 — Encrypted git: multi-recipient key rotation validated, third script bug found
+
+- Validated a full multi-recipient rekeying workflow on `encrypted-git`: pushed a repo from macOS (key A) with `gcrypt.publish-participants` enabled, added a Qubes AppVM as a second participant (key B), then revoked key A entirely, leaving the repo decryptable only by key B
+- Found and worked around a third bug in the vendored `git-remote-gcrypt` script: hidden-recipient (`-R`) manifests with more than one participant cause GPG's trial-decryption noise to be misread as a hard failure even when decryption actually succeeds — see `vendor/git-remote-gcrypt/exit-code-patch-notes.md`; workaround is `gcrypt.publish-participants true` whenever more than one participant is configured
+- Diagnosed a signer/recipient coupling in `read_config()` that makes single-step participant revocation fail (`Failed to verify manifest signature!`) — fixed by revoking in two pushes: one to change the manifest's signer to the surviving key, a second to actually narrow the participant list — see `docs/troubleshooting.md`
+- Confirmed `GCRYPT_FULL_REPACK=1` only takes effect on a push that carries a real ref change (a no-op "Everything up-to-date" push never invokes the helper's push path) — documented, plus the file-count method for verifying a repack actually happened server-side
+- Diagnosed the generic "Repository not found" fresh-clone error as a swallowed-transport-error case (this instance's root cause: an `~/.ssh/config` `Host` block typo) — same underlying bug pattern as previously documented, now with a concrete repro
+- Cleaned up rekeying-related empty commits and forced a full repack on the test repo; server-side directory now holds exactly one packfile + the manifest, confirming no residue from the revoked key
+- New doc: `vendor/git-remote-gcrypt/exit-code-patch-notes.md`. Updated: `docs/troubleshooting.md` (four new entries), `docs/services/encrypted-git.md` (multi-recipient, publish-participants, and revocation guidance added to the GPG key section)
+
 ## 2026-09-01 — Encrypted git (git-remote-gcrypt) implemented
 
 - Provisioned `encrypted-git` LXC (ID 114, `192.168.2.14`, Debian 13, unprivileged, `nesting=1` set at creation via the Proxmox web UI)

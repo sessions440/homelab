@@ -243,6 +243,82 @@ Set the default recipient for every gcrypt push from this client:
 git config --global gcrypt.participants "<key-fingerprint>"
 ```
 
+### Multi-recipient access (multiple clients, multiple keys)
+
+`gcrypt.participants` accepts a space-separated list of fingerprints, not
+just one. To let two clients (e.g. a primary device with key A and a
+second device with key B) both push/fetch the same repo:
+
+```bash
+# on every client, pushing or fetch-only — must be byte-for-byte identical
+git config --global gcrypt.participants "<fingerprint-A> <fingerprint-B>"
+```
+
+This must be set identically on **every** client, including ones that
+only fetch — `ensure_connected()` uses the same list both to choose
+encryption recipients on push and to decide which signatures to trust on
+fetch. A client missing one fingerprint from this list can fail signature
+verification on a manifest signed by the missing key, separately from
+whether it could actually decrypt it.
+
+Both public keys must also be present in the local keyring of any client
+that pushes (`gpg --import`) — a listed fingerprint with no matching local
+key is silently dropped with a warning, not an error, and the resulting
+manifest quietly stops being decryptable by that key.
+
+**Scope note:** each push's recipient set is based purely on *that
+client's* currently-configured participants at push time — not a union
+across every client's history. A client with a stale or narrower config
+will silently narrow (or change) who can decrypt everyone's next
+manifest, since the manifest file is fully overwritten, not versioned.
+
+Per-remote override, if different repos need different trust sets from
+the same machine:
+
+```bash
+git config remote.<name>.gcrypt-participants "<fingerprints>"
+git config remote.<name>.gcrypt-signingkey "<fingerprint>"
+```
+
+### `gcrypt.publish-participants` — when it's required, not just a privacy tradeoff
+
+By default (`publish-participants` unset), recipients are hidden (`-R`) —
+key IDs aren't visible in the manifest, at the cost of GPG needing to
+trial-decrypt against each local secret key to find the right one. With
+**more than one** hidden recipient, this trial process can trigger a real
+bug in `git-remote-gcrypt` that misreports a fully successful decryption
+as a hard failure — see
+[`vendor/git-remote-gcrypt/exit-code-patch-notes.md`](../../vendor/git-remote-gcrypt/exit-code-patch-notes.md)
+and the corresponding `docs/troubleshooting.md` entry.
+
+**Practical rule:** set this to `true` whenever `gcrypt.participants`
+has more than one entry.
+
+```bash
+git config --global gcrypt.publish-participants true
+```
+
+Safe to unset only once exactly **one** participant remains — a single
+recipient never needs more than one trial regardless of hidden/visible,
+so the bug's trigger condition can't occur. Re-enable the moment a second
+key is added back; this is a real functional dependency, not just a
+Tier 2 privacy nicety, whenever more than one key is in play.
+
+### Revoking a participant's access
+
+Multi-recipient access is a designed use case; revocation is supported but
+requires two pushes, not one, due to a coupling between signature
+verification and recipient selection in `read_config()`. Full sequence
+and root cause: see the "Revoking a gcrypt participant" entry in
+`docs/troubleshooting.md`. Summary: push once with the full participant
+list still in place (from a client holding the *remaining* key's secret
+key) so that key becomes the manifest's signer, confirm the signer
+changed, **then** narrow `gcrypt.participants` and push again.
+
+Revocation only affects the server-side store going forward — see
+`docs/plan/encrypted-git.md` for why there's no remote kill-switch for
+data a revoked client already fetched.
+
 ---
 
 ## Basic operations
