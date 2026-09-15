@@ -667,3 +667,86 @@ typo in the client's `~/.ssh/config` `Host` block (must match the literal
 hostname in the gcrypt URL exactly — see the existing "Permission denied"
 entry above for the same underlying SSH-matching behavior). Once fixed,
 the identical clone command succeeded with no other changes.
+
+## gcrypt push signed by the wrong local key, despite `gcrypt.participants` being correct (2026-09-14)
+
+**Symptom:** With two GPG secret keys (A, B) present in the local keyring
+and `gcrypt.participants` set to A only, a push is nonetheless signed by
+B. Subsequent push/pull attempts then fail with:
+
+```
+gpg: Signature made ...
+gpg:                using EDDSA key <B's fingerprint>
+gpg: Good signature from "..." [unknown]
+gcrypt: Failed to verify manifest signature!
+gcrypt: Only accepting signatories:  <A's key ID>
+gcrypt: Failed to decrypt manifest!
+```
+
+Note this is a **different** bug from the hidden-recipient exit-code issue
+(see `vendor/git-remote-gcrypt/exit-code-patch-notes.md`) even though the
+surface symptom looks similar (`Good signature` followed by a hard
+failure). Distinguish by the specific error: this one says
+`Failed to verify manifest signature!` with a signer/accepted-signer
+mismatch, not `Failed to decrypt manifest!` preceded by
+`ecdh failed ... Checksum error` trial-decryption noise.
+
+**Cause:** `gcrypt.participants` governs two things — who a manifest is
+*encrypted to*, and whose signature is *trusted* on verify. It has no
+bearing on which local secret key GPG actually *signs with* when
+producing a new manifest. That's a separate, independent lookup in
+`read_config()`:
+
+```sh
+Conf_signkey=$(git config --get "remote.$NAME.gcrypt-signingkey" '.+' ||
+    git config --path user.signingkey || :)
+```
+
+If neither `remote.<name>.gcrypt-signingkey` nor `user.signingkey` is set,
+`PRIVENCRYPT()` calls `gpg -se` with no `-u` flag, so GPG falls back to
+its own default signing key — normally `default-key` in `~/.gnupg/gpg.conf`
+if present, or otherwise **whichever secret key GPG lists first** when no
+`gpg.conf` exists at all and no default is configured. On a keyring with
+more than one secret key and no explicit signing-key override anywhere,
+which key ends up signing a gcrypt push is effectively arbitrary from the
+user's point of view — governed by GPG's own internal key ordering, not
+by anything gcrypt-aware.
+
+Confirmed on this homelab: no `~/.gnupg/gpg.conf` existed on the affected
+AppVM, and key B simply appeared first in `gpg --list-secret-keys` — that
+ordering, not any deliberate configuration, is what determined the
+signer.
+
+**Fix — force the signing key explicitly, per remote:**
+
+```bash
+git config remote.<name>.gcrypt-signingkey <A-fingerprint>
+```
+
+**Recovering from a repo already signed by the wrong key:** setting the
+signing key only changes what happens on the *next* push — it cannot
+retroactively fix verification of the manifest currently on the remote,
+which is the same signer/recipient coupling documented in the "Revoking a
+gcrypt participant" entry above. Two ways to recover, depending on whether
+the repo's content is worth preserving:
+
+- **If preserving content:** temporarily widen `gcrypt.participants` to
+  include both A and B so verification of the existing (B-signed)
+  manifest can succeed, set `remote.<name>.gcrypt-signingkey` to A, force
+  a real push (an empty commit works if there's nothing else to push) so
+  a correctly-signed manifest gets written, confirm via `git pull` that
+  the signer is now A, then narrow `gcrypt.participants` back to A alone.
+  This narrowing step is a single push here (unlike true revocation) since
+  the manifest is already signed by A by the time you narrow.
+- **If the repo is disposable (e.g. still mid-setup):** simpler to nuke
+  the remote directory (`rm -rf /srv/gcrypt/<reponame>`), clear the local
+  `remote.<name>.gcrypt-id`, set `gcrypt-signingkey` correctly first, and
+  push fresh. Confirmed as a valid shortcut in this homelab when the repo
+  had no content worth preserving through the recovery.
+
+**Worth checking on any client with multiple GPG secret keys:** run
+`gpg --list-secret-keys --keyid-format=long` and check for a `default-key`
+line in `~/.gnupg/gpg.conf`. The same implicit-default behavior applies to
+any plain `gpg --sign`/`gpg -se` invocation on that machine without an
+explicit `-u`, not just through gcrypt — worth knowing which key is the
+silent default before it surprises you somewhere else.
