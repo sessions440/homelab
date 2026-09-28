@@ -2,6 +2,9 @@
 
 A partial solution — better than nothing, worth doing before risky host-level changes (e.g. kernel module / driver installs).
 
+> **See also:** `docs/plan/backup-strategy.md` for the planned upgrade path (Proxmox Backup
+> Server + restic offsite). This doc remains the current interim procedure until that lands.
+
 ---
 
 ## What to Back Up

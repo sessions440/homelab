@@ -32,6 +32,11 @@ would reveal them (e.g. `env | grep DOMAIN`, `curl` against the live domain,
 Verification steps that would expose the real domain must be flagged for the
 human to run manually.
 
+**Note on what this actually guarantees:** this is a policy boundary, not a technical one.
+`ai_homelab` already has root SSH on the caddy LXC where `caddy.env` lives — nothing stops
+a session from reading it beyond this instruction. Treat this section as binding
+regardless, not as backed by an access-control wall.
+
 ---
 
 ## Server Overview
@@ -48,6 +53,7 @@ human to run manually.
 - 32GB RAM
 - 466GB SSD (Samsung 850 EVO)
 - NVIDIA GTX 1060 6GB
+- Root filesystem: ext4 on LVM (`pve-root`) — no host-level snapshot/rollback without a ZFS migration; see `docs/plan/backup-strategy.md`
 
 ---
 
@@ -291,7 +297,9 @@ homelab/
 │   │   ├── proxmox-manual-backup.md
 │   │   ├── ai-model-costs.md
 │   │   ├── router-hardening.md  ← Router hardening plan (WAN exposure, key-only SSH, remote syslog)
-│   │   └── encrypted-git.md     ← git-remote-gcrypt tool comparison and decision log
+│   │   ├── encrypted-git.md     ← git-remote-gcrypt tool comparison and decision log
+│   │   ├── agent-privilege.md   ← Proxmox host agent-privilege decision (RBAC vs. full root)
+│   │   └── backup-strategy.md   ← PBS + host-level + restic backup/recovery planning
 │   ├── setup/
 │   │   ├── etckeeper-proxmox.md ← etckeeper installation gotchas for Proxmox
 │   │   ├── ssh.md               ← SSH keypair setup and deployment notes
