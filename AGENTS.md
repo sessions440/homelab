@@ -160,9 +160,9 @@ Leave the DNS field blank in individual CT/VM wizards to inherit from there.
 
 ### minecraft — `192.168.2.13`
 
-- **Status:** Running. Minecraft Java Edition server 26.2 running on Java 25 (`openjdk-25-jre-headless`) via systemd unit `minecraft.service`. Port 25565 listening on LAN.
-- **Purpose:** LAN-only Minecraft Java Edition server. Internet exposure (WireGuard/tunnel) planned for later.
-- **Runtime:** Bare JVM via systemd (no Docker) — unit `minecraft.service`
+- **Status:** Running. Minecraft Java Edition server 26.2 running on Java 25 (`openjdk-25-jre-headless`) via systemd unit `minecraft.service`. Port 25565 listening on LAN. Stdin FIFO console enabled (`minecraft.socket`). External access enabled via `playit.service` tunnel with whitelist enforced.
+- **Purpose:** Minecraft Java Edition server for LAN play and whitelisted internet players via playit.gg tunnel.
+- **Runtime:** Bare JVM via systemd (no Docker) — unit `minecraft.service`; tunnel via `playit.service`
 - **Docs:** `docs/services/minecraft.md`
 
 ### encrypted-git — `192.168.2.14`
@@ -201,9 +201,9 @@ See `docs/setup/ssh.md` for full key strategy, provisioning steps, and config.
 
 ## External Infrastructure
 
-| Name      | Provider     | Region       | Public IP | OS     | Purpose                                                   |
-| --------- | ------------ | ------------ | --------- | ------ | --------------------------------------------------------- |
-| vps-relay | Oracle Cloud | ca-toronto-1 | TBD       | Debian | FRP relay for CGNAT traversal (Minecraft external access) |
+| Name                | Provider     | Region       | Public IP | OS     | Purpose                                                              |
+| ------------------- | ------------ | ------------ | --------- | ------ | -------------------------------------------------------------------- |
+| vps-relay (shelved) | Oracle Cloud | ca-toronto-1 | TBD       | Debian | FRP relay for CGNAT traversal (shelved in favor of playit.gg tunnel) |
 
 ---
 

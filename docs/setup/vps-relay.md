@@ -1,7 +1,7 @@
 # VPS Relay for CGNAT Traversal
 
-**Status:** Planned — VPS not yet provisioned
-**Last updated:** 2026-08-20
+**Status:** Shelved (superseded by playit.gg for Minecraft external access; preserved for future use if needed)  
+**Last updated:** 2026-10-02
 
 ---
 

@@ -2,6 +2,23 @@
 
 ---
 
+## Minecraft: `minecraft.socket` refusing to listen or cannot be enabled (2026-10-02)
+
+**Symptom:** Running `systemctl enable --now minecraft.socket` produces `The unit files have no installation config` and/or `minecraft.socket: Socket service minecraft.service already active, refusing`.
+
+**Cause:**
+1. A `.socket` unit without an `[Install]` section (`WantedBy=sockets.target`) is static and cannot be enabled via `systemctl enable`.
+2. When configuring `StandardInput=socket` with `Sockets=minecraft.socket`, systemd refuses to start the socket while the target service is already running.
+
+**Fix:** Add `[Install]\nWantedBy=sockets.target` to `/etc/systemd/system/minecraft.socket`. Stop `minecraft.service` before enabling/starting `minecraft.socket`, then restart `minecraft.service`:
+```bash
+systemctl stop minecraft.service
+systemctl enable --now minecraft.socket
+systemctl start minecraft.service
+```
+
+---
+
 ## Vaultwarden: admin login rejected despite correct password (2026-06-17)
 
 **Symptom:** `/admin` login returns "Invalid admin token" even when the correct

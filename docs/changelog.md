@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-10-02 — Minecraft external access (playit.gg) & stdin FIFO console enabled
+
+- Installed `playit` agent (1.0.9-1) on `minecraft` LXC (`192.168.2.13`) via the official apt repository; enabled and started `playit.service`
+- Claimed the agent and created a Minecraft Java tunnel in the playit.gg dashboard forwarding to `127.0.0.1:25565`
+- Implemented console stdin FIFO via `/etc/systemd/system/minecraft.socket` and `/etc/systemd/system/minecraft.service.d/stdin.conf` (`StandardInput=socket`)
+- Installed `/usr/local/bin/mc` convenience wrapper on the LXC for sending console commands and viewing server responses
+- Enforced strict whitelist settings in `/opt/minecraft/server.properties` (`white-list=true`, `enforce-whitelist=true`, `online-mode=true`)
+- Shelved `docs/setup/vps-relay.md` and updated `AGENTS.md` External Infrastructure and Service Inventory tables
+
 ## 2026-09-14 — Encrypted git: multi-recipient key rotation validated, third script bug found
 
 - Validated a full multi-recipient rekeying workflow on `encrypted-git`: pushed a repo from macOS (key A) with `gcrypt.publish-participants` enabled, added a Qubes AppVM as a second participant (key B), then revoked key A entirely, leaving the repo decryptable only by key B

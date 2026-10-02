@@ -29,6 +29,7 @@ Provisioning Notes).
 
 ## Status
 
+- **2026-10-02:** External access configured and live via **playit.gg**. Agent installed via official apt repository, claimed, and systemd service `playit.service` enabled/running. Tunnel configured for Minecraft Java (`127.0.0.1:25565`). Whitelist strictly enforced in `server.properties` (`white-list=true`, `enforce-whitelist=true`, `online-mode=true`). Console access enabled via systemd stdin FIFO (`minecraft.socket` + `minecraft.service.d/stdin.conf`) and convenience wrapper `/usr/local/bin/mc` installed. Playit free tier limits: up to 4 tunnels, shared IPs / assigned domain, unmetered gaming traffic.
 - **2026-09-29:** External-access decision changed from self-hosted VPS + FRP to **playit.gg** (see "External Access"). Not yet implemented; blocked only on the human creating a playit.gg account and claiming an agent. Console access for whitelist administration will use a systemd stdin FIFO (see "Console access"); also not yet implemented.
 - **2026-08-14:** Java 25 (`openjdk-25-jre-headless`) installed. Dedicated user `minecraft` created with home `/opt/minecraft`. Minecraft Vanilla Server 26.2 downloaded, EULA accepted, and configured as a systemd service (`minecraft.service`). Verified active and listening on port `25565`.
 - **2026-08-13:** LXC provisioned. SSH keys (`ai_homelab`, `human_homelab`)
@@ -38,7 +39,7 @@ Provisioning Notes).
 
 ## External Access (Internet)
 
-**Status:** Decision made — **playit.gg**. Not yet implemented.
+**Status:** Implemented (2026-10-02) — **playit.gg** tunnel live and active.
 
 ### Decision history
 
@@ -119,13 +120,16 @@ use Cloudflare Tunnel instead; playit is for raw game traffic.
 1. **(Agent) Enable console input via a stdin FIFO.** The server has no
    console under systemd; see [Console access](#console-access-stdin-fifo)
    for background and human usage. Create `/etc/systemd/system/minecraft.socket`:
-   ```ini
-   [Socket]
-   ListenFIFO=%t/minecraft.stdin
-   SocketUser=minecraft
-   SocketMode=0600
-   RemoveOnStop=true
-   ```
+    ```ini
+    [Socket]
+    ListenFIFO=%t/minecraft.stdin
+    SocketUser=minecraft
+    SocketMode=0600
+    RemoveOnStop=true
+
+    [Install]
+    WantedBy=sockets.target
+    ```
    Create the drop-in `/etc/systemd/system/minecraft.service.d/stdin.conf`:
    ```ini
    [Service]
