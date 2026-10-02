@@ -29,7 +29,7 @@ Provisioning Notes).
 
 ## Status
 
-- **2026-09-29:** External-access decision changed from self-hosted VPS + FRP to **playit.gg** (see "External Access"). Not yet implemented; blocked only on the human creating a playit.gg account and claiming an agent.
+- **2026-09-29:** External-access decision changed from self-hosted VPS + FRP to **playit.gg** (see "External Access"). Not yet implemented; blocked only on the human creating a playit.gg account and claiming an agent. Console access for whitelist administration will use a systemd stdin FIFO (see "Console access"); also not yet implemented.
 - **2026-08-14:** Java 25 (`openjdk-25-jre-headless`) installed. Dedicated user `minecraft` created with home `/opt/minecraft`. Minecraft Vanilla Server 26.2 downloaded, EULA accepted, and configured as a systemd service (`minecraft.service`). Verified active and listening on port `25565`.
 - **2026-08-13:** LXC provisioned. SSH keys (`ai_homelab`, `human_homelab`)
   authorized; password authentication disabled.
@@ -111,20 +111,48 @@ use Cloudflare Tunnel instead; playit is for raw game traffic.
 
 ### Setup Plan
 
-> Steps 1–2 are **human-only** (account and claim). Steps 3+ can be handed to
-> the coding agent with SSH access to this LXC, *except* anything that would
-> print the agent secret. Keep this section updated as ground truth once
-> execution starts.
+> Steps marked **(Human)** are human-only (account, claim, dashboard). The
+> rest can be handed to the coding agent with SSH access to this LXC,
+> *except* anything that would print the agent secret. Keep this section
+> updated as ground truth once execution starts.
 
-1. **(Human) Create a playit.gg account.** Enable 2FA.
+1. **(Agent) Enable console input via a stdin FIFO.** The server has no
+   console under systemd; see [Console access](#console-access-stdin-fifo)
+   for background and human usage. Create `/etc/systemd/system/minecraft.socket`:
+   ```ini
+   [Socket]
+   ListenFIFO=%t/minecraft.stdin
+   SocketUser=minecraft
+   SocketMode=0600
+   RemoveOnStop=true
+   ```
+   Create the drop-in `/etc/systemd/system/minecraft.service.d/stdin.conf`:
+   ```ini
+   [Service]
+   Sockets=minecraft.socket
+   StandardInput=socket
+   StandardOutput=journal
+   StandardError=journal
+   ```
+   Apply and verify (the restart briefly drops any connected players):
+   ```bash
+   systemctl daemon-reload
+   systemctl enable --now minecraft.socket
+   systemctl restart minecraft
+   echo "list" > /run/minecraft.stdin
+   journalctl -u minecraft -n 5 --no-pager   # expect a "players online" line
+   ```
+   Commands are sent with `echo "<command>" > /run/minecraft.stdin` (as root
+   or `minecraft`); responses appear in the journal.
 
-2. **(Human) Confirm whitelist is already enforced** before any tunnel exists
+2. **(Human) Create a playit.gg account.** Enable 2FA.
+
+3. **(Human) Confirm whitelist is already enforced** before any tunnel exists
    (do this first, not last):
+   ```bash
+   echo "whitelist add <username>" > /run/minecraft.stdin   # as root on the LXC
    ```
-   # in the Minecraft console
-   whitelist add <username>
-   ```
-   and confirm `server.properties` has:
+   and confirm `/opt/minecraft/server.properties` has:
    ```
    white-list=true
    enforce-whitelist=true
@@ -132,7 +160,7 @@ use Cloudflare Tunnel instead; playit is for raw game traffic.
    ```
    Restart the server if these were changed.
 
-3. **Install the agent** on this LXC (Debian apt repo per playit's docs —
+4. **Install the agent** on this LXC (Debian apt repo per playit's docs —
    re-check https://playit.gg/support/run-on-linux/ for the current commands
    before running, in case the repo URL or package name changed):
    ```bash
@@ -145,7 +173,7 @@ use Cloudflare Tunnel instead; playit is for raw game traffic.
    If the LXC's `apt` warns about the repo, review the playit GitHub repo
    before proceeding.
 
-4. **(Human, interactive) Claim the agent.** SSH in as the human (`ssh minecraft`)
+5. **(Human, interactive) Claim the agent.** SSH in as the human (`ssh minecraft`)
    and run:
    ```bash
    systemctl enable --now playit.service
@@ -155,23 +183,23 @@ use Cloudflare Tunnel instead; playit is for raw game traffic.
    "Create agent" flow. Do not paste the claim URL or any resulting secret
    into a coding-agent session.
 
-5. **(Human, dashboard) Create the tunnel:** Dashboard → Tunnels → Add Tunnel
+6. **(Human, dashboard) Create the tunnel:** Dashboard → Tunnels → Add Tunnel
    → type **Minecraft Java (game)**, region closest to you, select this
    agent. Local address `127.0.0.1`, local port `25565` (the default).
    Copy the public address it shows.
 
-6. **Verify the agent is running and enabled at boot:**
+7. **Verify the agent is running and enabled at boot:**
    ```bash
    systemctl status playit
    systemctl is-enabled playit
    journalctl -u playit --no-pager -n 30   # agent logs; check no secret is echoed before sharing output
    ```
 
-7. **Test from an external network** (mobile data, not LAN wifi) using the
+8. **Test from an external network** (mobile data, not LAN wifi) using the
    public address in the Minecraft server list, with a whitelisted account.
    Also test with a *non-whitelisted* account and confirm it is rejected.
 
-8. **Update docs:** refresh Status above with the actual free-tier limits and
+9. **Update docs:** refresh Status above with the FIFO setup, the actual free-tier limits, and
    the fact that the tunnel is live (do **not** record the secret; the public
    address is fine to record or omit per preference), add a
    `docs/changelog.md` entry, remove the `vps-relay` row from AGENTS.md's
@@ -290,9 +318,83 @@ lag vanilla, since 26.1 is very recent.
 
 ---
 
+## Console access (stdin FIFO)
+
+Supplementary material for step 1 of the External Access setup plan.
+
+### Background
+
+Under systemd the Minecraft JVM has no stdin attached, so there is no
+console to type into, and vanilla's `whitelist add`, `op`, `stop`, etc. are
+console commands. The fix is a systemd socket unit that owns a named pipe
+(FIFO) at `/run/minecraft.stdin` and attaches it as the service's stdin.
+Writing a line to the pipe is equivalent to typing it at the console;
+output goes to the journal. systemd holds the pipe open itself, so the
+server never sees EOF between writes.
+
+The FIFO is mode `0600`, owned by `minecraft`, so only root or `minecraft`
+on the LXC can write to it. Anyone with that access already has the world
+files, so the FIFO grants no new privilege.
+
+### Human usage
+
+```bash
+ssh minecraft                                   # then, as root:
+echo "whitelist add <username>" > /run/minecraft.stdin
+journalctl -u minecraft -f                      # live log, in a second terminal
+```
+
+There is no tab-completion or history, and responses are not shown inline.
+The agent is unaffected: a one-line `echo` works non-interactively over SSH,
+which an interactive console would not.
+
+### Optional: `mc` wrapper
+
+Sends a command and prints the server's response, for a request/response
+feel. Save as `/usr/local/bin/mc` (`chmod 755`):
+
+```sh
+#!/bin/sh
+# usage: mc <command...>   e.g. mc whitelist list
+[ $# -gt 0 ] || { echo "usage: mc <command>" >&2; exit 2; }
+since=$(date +"%Y-%m-%d %H:%M:%S")
+printf '%s\n' "$*" > /run/minecraft.stdin
+sleep 1
+journalctl -u minecraft --since "$since" --no-pager -o cat
+```
+
+### Gotchas
+
+- Edits to `server.properties` need `systemctl restart minecraft`; edits
+  made while the server runs can be overwritten on shutdown.
+- Because the socket unit is active independently of the service, writing
+  to the FIFO while the server is stopped may start it (socket activation).
+  Verify before relying on either behavior.
+
+### Decision (2026-09-29) and alternatives
+
+Chosen over the alternatives for needing no extra software, no secret, and
+no network exposure:
+
+- **RCON:** request/response only (not a full console), and a network
+  service gated solely by a password that travels unencrypted on the LAN.
+  Grants remote operator control with no shell on the LXC, which the FIFO
+  does not. Rejected.
+- **tmux/screen console:** gives a real interactive console, but is heavier
+  and makes graceful stop awkward. Revisit if a proper console is wanted;
+  the FIFO can be removed cleanly.
+- **Hand-edit `whitelist.json` and restart:** needs correct UUIDs
+  (`online-mode=true`); fine for rare changes, tedious otherwise.
+- **In-game operator commands:** makes an op account a full-control
+  credential on an internet-reachable server, and is unavailable to the
+  agent.
+
+---
+
 ## Notes
 
 - No Caddy entry — Minecraft's protocol isn't HTTP.
+- Console commands: see "Console access (stdin FIFO)" above.
 - External access: see "External Access (Internet)" above — playit.gg tunnel,
   not yet implemented. Earlier VPS+FRP plan shelved (`docs/setup/vps-relay.md`).
 - No automated backups yet; covered by the manual `vzdump` procedure in
