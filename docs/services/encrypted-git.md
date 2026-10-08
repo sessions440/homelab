@@ -183,12 +183,10 @@ string** used on the command line — and the hostname embedded in a
 
 ```
 Host encrypted-git.home.arpa
-    User root
     IdentityFile ~/.ssh/<client-key>
 ```
 
-(Client connects to the box as `root` here only for interactive
-administration — the actual gcrypt transfers authenticate as the `gcrypt`
+(No need for a `User` line. gcrypt transfers authenticate as the `gcrypt`
 user via the key embedded in the `rsync://gcrypt@...` URL itself, which
 sshd resolves through its own `authorized_keys` matching regardless of this
 `Host` block's `User` line.)
