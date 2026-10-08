@@ -214,6 +214,7 @@ Immediately after generating:
 gpg --list-secret-keys --keyid-format=long   # find the KEYID / fingerprint
 gpg --gen-revoke <KEYID> > gcrypt-revocation-cert.asc
 gpg --export-secret-keys --armor <KEYID> > gcrypt-private-key-backup.asc
+gpg --export --armor <KEYID> > gcrypt-pubkey.asc   # optional pubkey backup
 ```
 
 Back up **both files to durable storage outside the originating machine**
