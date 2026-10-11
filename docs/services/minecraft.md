@@ -224,13 +224,16 @@ use Cloudflare Tunnel instead; playit is for raw game traffic.
 
 ## Setup Plan (remaining)
 
+> **Historical:** these initial-install steps were completed 2026-08-14. For
+> version bumps see "Upgrading the server (version bumps)" below.
+>
 > Intended to be executed by a coding agent with SSH access to this LXC.
 > (Currently trialing Gemini 3.7 Flash via OpenCode with "low" reasoning. This choice differs from what's in [`docs/plan/ai-model-costs.md`](../plan/ai-model-costs.md), which is two months out of date as of 2026-08-14.)
 > Written as instructions for that agent — keep this section updated as ground truth once execution starts.
 
 ### ⚠️ Java version — decide before installing
 
-Minecraft moved to calendar versioning in 2026 (current release: **26.1**).
+Minecraft moved to calendar versioning in 2026 (26.1 was current when this was written; 26.3 as of 2026-10).
 **Current Java Edition server releases (26.1+) require Java 25**, not Java
 21 — many guides still in circulation (including some from mid-2026)
 incorrectly cite Java 21 and will produce `UnsupportedClassVersionError`
@@ -239,7 +242,7 @@ deliberately running an older server line (1.20.5–1.21.x).
 
 | Path | Minecraft version | Java | apt package |
 |---|---|---|---|
-| **A — latest vanilla (assumed default below)** | 26.1 | 25 | `openjdk-25-jre-headless` |
+| **A — latest vanilla (assumed default below)** | 26.x | 25 | `openjdk-25-jre-headless` |
 | **B — older / mod-friendly line** | 1.21.x | 21 | `openjdk-21-jre-headless` |
 
 Debian 13 ships both `openjdk-25-jdk` and `openjdk-21-jdk` in its default
@@ -393,6 +396,172 @@ no network exposure:
   credential on an internet-reachable server, and is unavailable to the
   agent.
 
+## Upgrading the server (version bumps)
+
+Applies to routine upgrades within the vanilla 26.x line (e.g. 26.2 → 26.3).
+Not for switching to a modded loader (Paper/Fabric/Forge) — those have their
+own version and Java support; check before changing.
+
+**Legend:** **[HUMAN]** = needs the human (Proxmox host, in-game client, player
+communication). **[AGENT]** = a human or coding agent can do it over SSH to the
+LXC (`ssh -i ~/.ssh/ai_homelab root@192.168.2.13`, or `ssh minecraft` for the
+human).
+
+### Background
+
+- Minecraft Java Edition uses `YY.D.H` versioning from 2026. Releases from
+  26.1 onward require **Java 25** (installed: `openjdk-25-jre-headless`).
+  Minecraft raises its minimum Java periodically, so check the target
+  release's metadata (step 4) rather than assuming Java is unchanged.
+- **No cross-version play.** Once the server is upgraded, players must update
+  their clients to the same version; clients on the old version are refused.
+- **World conversion is one-way.** Starting a newer server upgrades the world
+  data in place. A newer-format world cannot be opened by the older server.
+  Rollback means restoring the pre-upgrade backup, not just swapping the jar.
+- A server on the old version keeps working indefinitely; the only pressure to
+  upgrade is players on newer clients being unable to join.
+- The playit.gg tunnel carries raw TCP and is version-agnostic; it needs no
+  changes. `server.properties` whitelist settings carry over unchanged.
+
+### Steps
+
+1. **[HUMAN] Announce the downtime.** Tell LAN and external (playit) players
+   the server will be down and that they must update their clients to the new
+   version before reconnecting.
+
+2. **[HUMAN] Back up CT 113 on the Proxmox host.** The Proxmox host is
+   off-limits to the agent. Right-click CT 113 → Backup Now (mode `snapshot`,
+   zstd), or `vzdump 113 --mode snapshot --compress zstd` on the host. See
+   `docs/plan/proxmox-manual-backup.md`. Confirm it completed before
+   continuing. This is the only real rollback for the world.
+
+3. **[AGENT, read-only] Pre-flight checks.**
+   ```bash
+   ssh -i ~/.ssh/ai_homelab root@192.168.2.13
+   systemctl is-active minecraft          # expect: inactive (see step 5)
+   systemctl is-active minecraft.socket   # expect: active
+   pgrep -a java || echo "no java running"
+   java -version 2>&1 | head -1           # record: current Java major version
+   ls -l /opt/minecraft/server.jar        # record current jar
+   df -h /opt/minecraft                   # need ~100 MB free
+   ```
+   Record the current Minecraft version, Java version and jar timestamp in
+   the changelog entry. **Do not run `mc` or write to
+   `/run/minecraft.stdin` while the service is stopped** — the socket unit is
+   active independently and a write may socket-activate the server on the old
+   jar.
+
+4. **[AGENT] Resolve the target version from Mojang's official manifest and
+   confirm Java.** Substitute the target for `26.3`. Do not guess download
+   URLs; they change per release.
+   ```bash
+   VER=26.3
+   MANIFEST=https://piston-meta.mojang.com/mc/game/version_manifest_v2.json
+   curl -fsS "$MANIFEST" | python3 -c "
+   import sys, json
+   v = [x for x in json.load(sys.stdin)['versions'] if x['id'] == '$VER']
+   print(v[0]['type'], v[0]['url']) if v else print('NOT FOUND')"
+   ```
+   - Output must start with `release` (not `snapshot`). If `NOT FOUND` or
+     `snapshot`, **stop and ask the human.**
+   - Fetch the printed metadata URL and read the Java requirement and server
+     download:
+   ```bash
+   curl -fsS <metadata-url> | python3 -c "
+   import sys, json
+   d = json.load(sys.stdin)
+   print('java:', d['javaVersion']['majorVersion'])
+   print('url:', d['downloads']['server']['url'])
+   print('sha1:', d['downloads']['server']['sha1'])"
+   ```
+   - If `java:` is **greater than** the installed Java major version from
+     step 3, **stop and ask the human** — the JRE must be upgraded first
+     (`apt install openjdk-<N>-jre-headless`, then check `java -version`
+     and the `ExecStart` path in `minecraft.service`).
+
+5. **[HUMAN or AGENT] Make sure the server is stopped and the world saved.**
+   Preferred: while still running, `mc save-all` then
+   `systemctl stop minecraft` (stop waits up to 60 s for a clean world save,
+   per `TimeoutStopSec`). Verify with `systemctl is-active minecraft`
+   (expect `inactive`) and `pgrep java` (expect nothing).
+
+6. **[AGENT] Download and verify the new jar** (still stopped; the old jar is
+   untouched until step 7).
+   ```bash
+   cd /opt/minecraft
+   curl -fsS -o server-new.jar '<url from step 4>'
+   echo '<sha1 from step 4>  server-new.jar' | sha1sum -c -
+   ```
+   Must print `server-new.jar: OK`. If not, delete `server-new.jar` and stop.
+
+7. **[AGENT] Swap jars, keeping the old one.**
+   ```bash
+   cd /opt/minecraft
+   cp -a server.jar server-<old-version>.jar     # e.g. server-26.2.jar
+   mv server-new.jar server.jar
+   chown minecraft:minecraft server.jar server-<old-version>.jar
+   ls -l /opt/minecraft/*.jar
+   ```
+   (Run as root and `chown` afterward; the `minecraft` account has an
+   `nologin` shell, so `sudo -u minecraft -i` does not work.)
+
+8. **[AGENT] Start and watch the first boot.** The first start converts the
+   world data and can take noticeably longer than usual.
+   ```bash
+   systemctl start minecraft
+   # poll up to ~3 minutes until a "Done (" line appears:
+   journalctl -u minecraft --since "5 minutes ago" --no-pager -o cat | tail -40
+   ```
+   Success: a `Done (...s)! For help, type "help"` line. Note any WARN/ERROR
+   lines (especially about deprecated or renamed `server.properties` keys or
+   world upgrade failures) and report them. **If the server crash-loops or
+   reports a world conversion error, stop it (`systemctl stop minecraft`)
+   and report to the human — do not start rolling back on your own.**
+
+9. **[AGENT] Verify the server side.**
+   ```bash
+   mc list                                       # wrapper sends "list", prints response
+   ss -tlnp | grep 25565                         # listening
+   grep -E '^(white-list|enforce-whitelist|online-mode)=' /opt/minecraft/server.properties
+   systemctl is-active playit minecraft.socket
+   ```
+   Expect `white-list=true`, `enforce-whitelist=true`, `online-mode=true`,
+   and all units `active`. (None of this output contains secrets. Do not
+   print playit's config or agent secret.)
+
+10. **[HUMAN] Verify from clients.**
+    - Update the Minecraft client to the new version.
+    - LAN: connect to `192.168.2.13:25565` with a whitelisted account.
+    - External: from mobile data (not LAN wifi), connect via the playit
+      address with a whitelisted account.
+    - Confirm a **non-whitelisted** account is rejected.
+    - Tell external players they can update and reconnect.
+
+11. **[HUMAN] Confirm success to the agent before cleanup.**
+
+12. **[AGENT] Update docs** (after the human confirms): Status entry in this
+    file, `docs/changelog.md` entry, version in `AGENTS.md`'s minecraft
+    service entry, and — if anything unexpected happened —
+    `docs/troubleshooting.md`. Propose a git commit per `AGENTS.md`.
+
+13. **[AGENT] Later cleanup (after about a week of stable play):** delete
+    `/opt/minecraft/server-<old-version>.jar`. Keep the Proxmox backup until
+    you no longer need rollback.
+
+### Rollback
+
+Swapping the old jar back is **not enough** once the new server has opened
+the world — it may refuse to load a newer-format world. To roll back:
+
+1. `systemctl stop minecraft`
+2. **[HUMAN]** Restore CT 113 from the pre-upgrade backup on the Proxmox host
+   (`pct restore` or via the web UI). This also restores the old
+   `server.jar` that was in place at backup time.
+3. Start the service and verify as in steps 8–10.
+
+Players on the new client will be unable to join the old server version
+until it is upgraded again.
+
 ---
 
 ## Notes
@@ -400,6 +569,7 @@ no network exposure:
 - No Caddy entry — Minecraft's protocol isn't HTTP.
 - Console commands: see "Console access (stdin FIFO)" above.
 - External access: see "External Access (Internet)" above — playit.gg tunnel,
-  not yet implemented. Earlier VPS+FRP plan shelved (`docs/setup/vps-relay.md`).
+  live since 2026-10-02. Earlier VPS+FRP plan shelved (`docs/setup/vps-relay.md`).
+- Version upgrades: see "Upgrading the server (version bumps)" above.
 - No automated backups yet; covered by the manual `vzdump` procedure in
   `docs/plan/proxmox-manual-backup.md` until restic + rsync.net lands.
