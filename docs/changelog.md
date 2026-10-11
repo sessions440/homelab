@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-10-11 — Minecraft server upgraded to 26.3
+
+- Upgraded Minecraft Vanilla Server on CT 113 (`192.168.2.13`) from 26.2 to 26.3
+- Pre-flight recorded prior state: Minecraft 26.2, jar timestamp `Jun 16 12:13` (60,894,273 bytes), running on Java 25 (`openjdk 25.0.4`)
+- Verified target release 26.3 manifest and confirmed Java 25 requirement matches installed JRE
+- Downloaded and verified official Mojang release jar (`server-new.jar`, SHA-1 `33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c`)
+- Archived existing jar to `/opt/minecraft/server-26.2.jar` and activated version 26.3 as `server.jar`
+- Started `minecraft.service`; world converted in place and startup completed cleanly (`Done (0.376s)!`)
+- Verified server listening on TCP 25565, stdin FIFO console responding (`mc list`), and whitelist enforcement intact (`white-list=true`, `enforce-whitelist=true`, `online-mode=true`)
+- Human verified LAN client connectivity with whitelisted account (non-LAN and non-whitelisted rejection checks deferred)
+
 ## 2026-10-02 — Minecraft external access (playit.gg) & stdin FIFO console enabled
 
 - Installed `playit` agent (1.0.9-1) on `minecraft` LXC (`192.168.2.13`) via the official apt repository; enabled and started `playit.service`
